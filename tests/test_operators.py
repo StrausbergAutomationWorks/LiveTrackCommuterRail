@@ -61,6 +61,53 @@ class MetraTests(unittest.TestCase):
                       metra.METRA.attribution)
 
 
+class MetraStylingTests(unittest.TestCase):
+    """Lee, 2026-10-02: fill = Metra's line colour; halo and arrow fill
+    #0054A4; arrow outlined white; SWS's halo white."""
+
+    OFFICIAL = {"BNSF": "#29C233", "HC": "#550E0C", "MD-N": "#CC5500",
+                "MD-W": "#F1AD0E", "ME": "#EB5C00", "NCS": "#9785BC",
+                "RI": "#E02400", "SWS": "#0042A8", "UP-N": "#008000",
+                "UP-NW": "#FFE600", "UP-W": "#FE8D81"}
+
+    def obs(self, line, in_service=True):
+        return metra.Obs("8528", 41.9, -87.9, None, in_service,
+                         train="47" if in_service else None, line=line)
+
+    def test_every_line_fills_with_its_published_colour(self):
+        self.assertEqual(metra.LINE_COLOR, self.OFFICIAL)
+        for line, colour in self.OFFICIAL.items():
+            self.assertEqual(metra.styling(self.obs(line))["marker_color"], colour, line)
+
+    def test_halo_and_arrow_are_metra_blue_with_a_white_arrow_outline(self):
+        for line in self.OFFICIAL:
+            s = metra.styling(self.obs(line))
+            self.assertEqual(s["marker_arrow_color"], "#0054A4", line)
+            self.assertEqual(s["marker_arrow_outline_color"], "#FFFFFF", line)
+            want = "#FFFFFF" if line == "SWS" else "#0054A4"
+            self.assertEqual(s["marker_ring_color"], want, line)
+
+    def test_equipment_with_no_line_gets_halo_and_arrow_but_no_fill(self):
+        s = metra.styling(self.obs(None, in_service=False))
+        self.assertNotIn("marker_color", s)
+        self.assertEqual(s["marker_ring_color"], "#0054A4")
+        self.assertEqual(s["marker_arrow_color"], "#0054A4")
+
+    def test_every_value_is_hash_and_six_hex_digits(self):
+        import re
+        for line in list(self.OFFICIAL) + [None]:
+            for key, value in metra.styling(self.obs(line)).items():
+                self.assertRegex(value, r"^#[0-9A-Fa-f]{6}$", (line, key))
+
+    def test_no_label_colour_or_ring_width_is_set(self):
+        s = metra.styling(self.obs("UP-W"))
+        for key in ("marker_label_color", "marker_label_outline_color", "marker_ring_width"):
+            self.assertNotIn(key, s)
+
+    def test_the_operator_uses_this_styling(self):
+        self.assertIs(metra.METRA.styling, metra.styling)
+
+
 class NictdTests(unittest.TestCase):
 
     def setUp(self):

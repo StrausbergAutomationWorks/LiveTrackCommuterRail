@@ -34,6 +34,51 @@ from .base import Obs, Operator, position_of, vehicle_time
 
 _TRAIN_IN_TRIP = re.compile(r"_[A-Z]*?(\d+)_")
 
+# --- Marker styling, decided by Lee 2026-10-02 (06_MAP_CONTRACT.md D4a) -----
+# FILL: Metra's own line colour, `route_color` in its GTFS static routes.txt,
+# read 2026-10-02 (bin\ltcr_metra_colors.txt; schedule zip kept in
+# bin\metra_gtfs\). Re-check when Metra republishes the static feed.
+LINE_COLOR = {
+    "BNSF": "#29C233",
+    "HC": "#550E0C",
+    "MD-N": "#CC5500",
+    "MD-W": "#F1AD0E",
+    "ME": "#EB5C00",
+    "NCS": "#9785BC",
+    "RI": "#E02400",
+    "SWS": "#0042A8",
+    "UP-N": "#008000",
+    "UP-NW": "#FFE600",
+    "UP-W": "#FE8D81",
+}
+# HALO (the ring round the disc) and the DIRECTION ARROW's fill: Metra blue,
+# with the arrow outlined in white, on every Metra marker.
+METRA_BLUE = "#0054A4"
+WHITE = "#FFFFFF"
+# ! ONE EXCEPTION, Lee's: SWS's own fill #0042A8 is too close to the blue
+# halo to separate from it, so its halo is white. Still recognisable: blue
+# and white are Metra's colours, and SWS riders know their line is blue.
+RING_COLOR_FOR = {"SWS": WHITE}
+
+
+def styling(obs: Obs) -> dict[str, str]:
+    """Marker keys for one Metra vehicle (D4a rule 2 form, rule 3 omission).
+
+    Halo and arrow go on every Metra marker. The FILL only where the line is
+    known: equipment not in service carries no route, so it has no line
+    colour and the card draws its own fill (D4a rule 3: no colour, no key).
+    Label colours and the ring width are not set: the card's defaults apply.
+    """
+    out = {
+        "marker_ring_color": RING_COLOR_FOR.get(obs.line or "", METRA_BLUE),
+        "marker_arrow_color": METRA_BLUE,
+        "marker_arrow_outline_color": WHITE,
+    }
+    fill = LINE_COLOR.get(obs.line or "")
+    if fill is not None:
+        out["marker_color"] = fill
+    return out
+
 
 def _train(v) -> str | None:
     label = (v.vehicle.label or "").strip()
@@ -80,6 +125,7 @@ METRA = Operator(
     regions=("US-IL", "US-WI"),
     positions_url="https://gtfspublic.metrarr.com/gtfs/public/positions",
     parse=parse,
+    styling=styling,
     attribution=(
         "Data: Metra GTFS-Realtime. This integration is not sponsored by, "
         "affiliated with, or operated by Metra."
