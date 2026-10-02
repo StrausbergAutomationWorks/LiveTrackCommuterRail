@@ -103,11 +103,23 @@ class MetraStylingTests(unittest.TestCase):
         import re
         for line in list(self.OFFICIAL) + [None]:
             for key, value in metra.styling(self.obs(line)).items():
+                if key == "marker_ring_width":
+                    continue
                 self.assertRegex(value, r"^#[0-9A-Fa-f]{6}$", (line, key))
 
-    def test_no_label_colour_or_ring_width_is_set(self):
+    def test_halo_is_2_px_on_every_metra_marker_as_a_json_number(self):
+        # Lee, 2026-10-02: thicker on Metra only. D4a 6b: a number 0.5-4,
+        # never a bool (True is an int in Python and JSON true to the card).
+        for line in list(self.OFFICIAL) + [None]:
+            for in_service in (True, False):
+                w = metra.styling(self.obs(line, in_service))["marker_ring_width"]
+                self.assertIs(type(w), int, line)
+                self.assertEqual(w, 2, line)
+                self.assertTrue(0.5 <= w <= 4)
+
+    def test_no_label_colour_is_set(self):
         s = metra.styling(self.obs("UP-W"))
-        for key in ("marker_label_color", "marker_label_outline_color", "marker_ring_width"):
+        for key in ("marker_label_color", "marker_label_outline_color"):
             self.assertNotIn(key, s)
 
     def test_the_operator_uses_this_styling(self):
@@ -165,6 +177,10 @@ class NictdTests(unittest.TestCase):
         feeds.trip_update(fm, "515", [(5, 240), (3, 120)])
         feeds.trip_update(fm, "311", [(2, 0)])
         self.assertEqual(nictd.parse_delays(fm), {"515": 120, "311": 0})
+
+    def test_south_shore_keeps_the_default_halo_width(self):
+        # The Metra halo width must not reach another operator.
+        self.assertNotIn("marker_ring_width", nictd.styling(self.obs["310"]))
 
     def test_needs_no_key(self):
         self.assertFalse(nictd.NICTD.needs_key)

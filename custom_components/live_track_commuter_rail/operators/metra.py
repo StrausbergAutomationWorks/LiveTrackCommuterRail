@@ -63,18 +63,27 @@ RING_COLOR_FOR = {"SWS": WHITE}
 # 2026-10-02, it is filled grey (the halo and arrow stay Metra blue). The
 # exact grey was not specified; #808080 is a neutral mid grey, chosen here.
 NOT_IN_SERVICE_FILL = "#808080"
+# HALO WIDTH, Metra only (Lee 2026-10-02: thicker on Metra without changing
+# anyone else's). Emitted per entity, so the card's 1 px default stands for
+# every other source (06_MAP_CONTRACT.md D4a rule 6b: a JSON number 0.5-4,
+# CSS px). 2, not 1.5: a browser floors a border to whole DEVICE pixels, so
+# 1.5 draws 1 px on a 1x screen and would look unchanged there. Must stay an
+# int or float, never a bool (Python's True is an int and reaches the card as
+# JSON true, which it rejects).
+RING_WIDTH = 2
 
 
-def styling(obs: Obs) -> dict[str, str]:
+def styling(obs: Obs) -> dict[str, str | int]:
     """Marker keys for one Metra vehicle (D4a rule 2 form, rule 3 omission).
 
     Halo and arrow go on every Metra marker. Fill: the line's colour when in
     service; grey when not in service. An in-service train on a line missing
     from the table gets no fill key, and the card draws its own (D4a rule 3).
-    Label colours and the ring width are not set: the card's defaults apply.
+    Label colours are not set: the card's defaults apply.
     """
     out = {
         "marker_ring_color": RING_COLOR_FOR.get(obs.line or "", METRA_BLUE),
+        "marker_ring_width": RING_WIDTH,
         "marker_arrow_color": METRA_BLUE,
         "marker_arrow_outline_color": WHITE,
     }
