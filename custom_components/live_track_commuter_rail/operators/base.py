@@ -89,10 +89,17 @@ def vehicle_time(v) -> datetime | None:
 
 
 def position_of(v) -> tuple[float, float] | None:
-    """(lat, lon), or None when the position is unset or the null island."""
+    """(lat, lon) to 6 decimals, or None when unset or the null island.
+
+    GTFS-RT positions are float32. Promoted to Python floats they carry noise
+    digits (41.860511779785156, seen on the box 2026-10-02 in previous_*). Six
+    decimals is ~0.1 m, below anything a feed resolves; South Shore rounded
+    the same way.
+    """
     if not v.HasField("position"):
         return None
-    lat, lon = float(v.position.latitude), float(v.position.longitude)
+    lat = round(float(v.position.latitude), 6)
+    lon = round(float(v.position.longitude), 6)
     if lat == 0.0 and lon == 0.0:
         return None
     return lat, lon

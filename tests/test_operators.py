@@ -44,6 +44,13 @@ class MetraTests(unittest.TestCase):
     def test_train_number_falls_back_to_the_trip_id(self):
         self.assertEqual(self.obs["8599"].train, "841")
 
+    def test_float32_noise_is_rounded_to_six_decimals(self):
+        fm = feeds.feed()
+        feeds.vehicle(fm, "9", vid="1357", lat=41.860512, lon=-87.618576)
+        o = metra.parse(fm)[0]
+        # float32 cannot hold 41.860512; unrounded it reads 41.86051177978...
+        self.assertEqual((o.lat, o.lon), (41.860512, -87.618576))
+
     def test_no_timestamp_means_no_observed_at(self):
         self.assertIsNone(self.obs["8600"].observed_at)
 
