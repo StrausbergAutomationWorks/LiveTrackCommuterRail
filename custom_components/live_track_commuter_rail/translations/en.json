@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "Where is the commuter railroad you want to watch? Only regions with at least one supported railroad are listed.",
+        "data": {
+          "region": "Region"
+        }
+      },
+      "operator": {
+        "title": "Choose the railroad",
+        "description": "Each railroad is added on its own. Add another later to watch more than one.",
+        "data": {
+          "operator": "Railroad"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: API key",
+        "description": "{operator} asks each user for their own key. Request one at {key_url}. Its terms are at {terms_url}. The key is stored in Home Assistant with this integration and is never written to the log.",
+        "data": {
+          "api_key": "API key"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: new API key",
+        "description": "{operator} refused the stored key. Enter a new one; keys are issued at {key_url}.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The railroad refused this key.",
+      "cannot_connect": "The railroad's feed could not be reached or read. Try again in a minute."
+    },
+    "abort": {
+      "already_configured": "This railroad is already set up.",
+      "all_configured": "Every supported railroad is already set up.",
+      "cannot_connect": "The railroad's feed could not be reached or read. Try again in a minute.",
+      "reauth_successful": "The new key works."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Poll interval",
+          "show_parked_equipment": "Show parked equipment"
+        },
+        "data_description": {
+          "scan_interval": "How often to read the railroad's feed. Most feeds refresh about every 30 seconds.",
+          "show_parked_equipment": "Off: equipment that is not in service appears only while it moves, and leaves the map after 10 minutes standing. On: every vehicle in the feed is shown, including parked consists."
+        }
+      }
+    }
+  }
+}

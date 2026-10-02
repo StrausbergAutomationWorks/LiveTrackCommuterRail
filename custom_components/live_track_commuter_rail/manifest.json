@@ -1,0 +1,17 @@
+{
+  "domain": "live_track_commuter_rail",
+  "name": "Live Track Commuter Rail",
+  "codeowners": [
+    "@LeeS773-prog"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/StrausbergAutomationWorks/LiveTrackCommuterRail",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/StrausbergAutomationWorks/LiveTrackCommuterRail/issues",
+  "requirements": [
+    "gtfs-realtime-bindings==1.0.0",
+    "saw-livetrack>=0.1.0"
+  ],
+  "version": "0.1.0"
+}
