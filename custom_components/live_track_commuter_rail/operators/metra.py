@@ -59,14 +59,18 @@ WHITE = "#FFFFFF"
 # halo to separate from it, so its halo is white. Still recognisable: blue
 # and white are Metra's colours, and SWS riders know their line is blue.
 RING_COLOR_FOR = {"SWS": WHITE}
+# Equipment NOT in service carries no route, so no line colour: Lee
+# 2026-10-02, it is filled grey (the halo and arrow stay Metra blue). The
+# exact grey was not specified; #808080 is a neutral mid grey, chosen here.
+NOT_IN_SERVICE_FILL = "#808080"
 
 
 def styling(obs: Obs) -> dict[str, str]:
     """Marker keys for one Metra vehicle (D4a rule 2 form, rule 3 omission).
 
-    Halo and arrow go on every Metra marker. The FILL only where the line is
-    known: equipment not in service carries no route, so it has no line
-    colour and the card draws its own fill (D4a rule 3: no colour, no key).
+    Halo and arrow go on every Metra marker. Fill: the line's colour when in
+    service; grey when not in service. An in-service train on a line missing
+    from the table gets no fill key, and the card draws its own (D4a rule 3).
     Label colours and the ring width are not set: the card's defaults apply.
     """
     out = {
@@ -74,7 +78,7 @@ def styling(obs: Obs) -> dict[str, str]:
         "marker_arrow_color": METRA_BLUE,
         "marker_arrow_outline_color": WHITE,
     }
-    fill = LINE_COLOR.get(obs.line or "")
+    fill = LINE_COLOR.get(obs.line or "") if obs.in_service else NOT_IN_SERVICE_FILL
     if fill is not None:
         out["marker_color"] = fill
     return out

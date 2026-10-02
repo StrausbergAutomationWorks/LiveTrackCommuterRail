@@ -87,11 +87,17 @@ class MetraStylingTests(unittest.TestCase):
             want = "#FFFFFF" if line == "SWS" else "#0054A4"
             self.assertEqual(s["marker_ring_color"], want, line)
 
-    def test_equipment_with_no_line_gets_halo_and_arrow_but_no_fill(self):
+    def test_equipment_not_in_service_is_grey_with_halo_and_arrow(self):
         s = metra.styling(self.obs(None, in_service=False))
-        self.assertNotIn("marker_color", s)
+        self.assertEqual(s["marker_color"], "#808080")
         self.assertEqual(s["marker_ring_color"], "#0054A4")
         self.assertEqual(s["marker_arrow_color"], "#0054A4")
+        self.assertEqual(s["marker_arrow_outline_color"], "#FFFFFF")
+
+    def test_an_in_service_train_on_an_unknown_line_gets_no_fill(self):
+        s = metra.styling(self.obs("XYZ"))
+        self.assertNotIn("marker_color", s)
+        self.assertEqual(s["marker_ring_color"], "#0054A4")
 
     def test_every_value_is_hash_and_six_hex_digits(self):
         import re
