@@ -151,6 +151,7 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.feed_timestamp = int(feed.header.timestamp)
         result = self.fleet.update(
             op.parse(feed), now,
-            show_parked=self._show_parked, delays=delays, next_stops=next_stops)
+            show_parked=self._show_parked, delays=delays, next_stops=next_stops,
+            static=self._static.data)
         self._last_good = result
         return result

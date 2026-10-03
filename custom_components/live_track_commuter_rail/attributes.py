@@ -16,6 +16,7 @@ from .const import MAP_LAYER
 PASSTHROUGH = (
     "train",
     "line",
+    "line_name",
     "observed_at",
     "last_seen",
     "previous_latitude",

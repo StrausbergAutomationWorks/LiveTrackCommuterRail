@@ -38,7 +38,7 @@ from saw_livetrack import FixTracker
 
 from .const import GRACE_S, HOLD_S, JITTER_M, MAX_SEGMENT_S, REST_S
 from .operators.base import Obs
-from .schedule import iso_utc
+from .schedule import iso_utc, line_name
 
 
 def metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -119,7 +119,8 @@ class Fleet:
         *,
         show_parked: bool = False,
         delays: dict[str, int] | None = None,
-        next_stops: dict[str, tuple[str, float]] | None = None,
+        next_stops: dict[str, tuple[str, float | None]] | None = None,
+        static: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         vehicles: dict[str, dict[str, Any]] = {}
         seen: set[str] = set()
@@ -163,7 +164,7 @@ class Fleet:
             if not visible:
                 continue
             moving = since is not None and since <= self._rest_s
-            vehicles[vid] = self._record(obs, seg, moving, jumped, delays, next_stops)
+            vehicles[vid] = self._record(obs, seg, moving, jumped, delays, next_stops, static)
 
         departed: list[str] = []
         # Published before, still in the feed, now hidden: parked long enough.
@@ -192,7 +193,8 @@ class Fleet:
 
     def _record(self, obs: Obs, seg: dict, moving: bool, jumped: bool,
                 delays: dict[str, int] | None,
-                next_stops: dict[str, tuple[str, float]] | None = None) -> dict[str, Any]:
+                next_stops: dict[str, tuple[str, float | None]] | None = None,
+                static: dict[str, Any] | None = None) -> dict[str, Any]:
         vid = obs.vehicle_id
         if obs.in_service:
             label = obs.train or vid
@@ -249,11 +251,19 @@ class Fleet:
         if obs.in_service and delays and obs.train in delays:
             rec["delay_min"] = round(delays[obs.train] / 60)
         # Next station and when (schedule.py). Only in service, only when the
-        # trip resolved; otherwise both keys are absent, never empty (D0).
+        # trip named its next stop; the time only when there is one
+        # (06_MAP_CONTRACT.md D4b). Absent, never empty (D0).
         nxt = next_stops.get(obs.trip_id) if (obs.in_service and next_stops and obs.trip_id) else None
         if nxt is not None:
             rec["next_stop"] = nxt[0]
-            rec["arrival_estimated_at"] = iso_utc(nxt[1])
+            if nxt[1] is not None:
+                rec["arrival_estimated_at"] = iso_utc(nxt[1])
+        # The line's NAME for the hover box (Lee 2026-10-03); only in
+        # service: equipment out of service runs no line.
+        if obs.in_service:
+            name = line_name(static, obs.line, obs.trip_id)
+            if name:
+                rec["line_name"] = name
         if self._styling is not None:
             rec.update(self._styling(obs))
         return rec

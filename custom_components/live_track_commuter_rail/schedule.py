@@ -34,7 +34,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 # Format of the distilled cache; a different number means rebuild it.
-STATIC_VERSION = 1
+# 2 (2026-10-03): routes (line names) and, with stop_times, trip_routes.
+STATIC_VERSION = 2
 
 # An update for a stop this far in the past is a stop already served.
 PAST_S = 30
@@ -50,6 +51,33 @@ def _rows(z: zipfile.ZipFile, name: str) -> list[dict[str, str]]:
                 for r in csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8-sig"))]
 
 
+def _rows_opt(z: zipfile.ZipFile, name: str) -> list[dict[str, str]]:
+    # A line name is a nicety: a timetable without the file still gives
+    # stations and times.
+    return _rows(z, name) if name in z.namelist() else []
+
+
+def _clean(text: str) -> str:
+    # NICTD's routes.txt reads "Monon  Corridor", two spaces.
+    return " ".join(text.split())
+
+
+def line_name(static: dict[str, Any] | None, line: str | None,
+              trip_id: str | None) -> str | None:
+    """The line's name from the timetable, or None.
+
+    By the operator's line id when it IS a route_id (Metra), else by the
+    trip's route (NICTD, whose line ids are ours). Never a guess.
+    """
+    if not static or static.get("v") != STATIC_VERSION:
+        return None
+    routes = static.get("routes") or {}
+    name = routes.get(line or "")
+    if not name and trip_id:
+        name = routes.get((static.get("trip_routes") or {}).get(trip_id.strip(), ""))
+    return name or None
+
+
 def distill(raw: bytes, *, stop_times: bool) -> dict[str, Any]:
     """A GTFS static zip -> the little this module needs, JSON-ready.
 
@@ -63,8 +91,17 @@ def distill(raw: bytes, *, stop_times: bool) -> dict[str, Any]:
         "tz": (agency[0].get("agency_timezone") if agency else "") or "UTC",
         "stops": {r["stop_id"]: r.get("stop_name") or r["stop_id"]
                   for r in _rows(z, "stops.txt") if r.get("stop_id")},
+        # The line's name, for the map's hover box (Lee 2026-10-03: the line
+        # name, not the train number, which is already on the marker).
+        "routes": {r["route_id"]: _clean(r.get("route_long_name") or r.get("route_short_name") or "")
+                   for r in _rows_opt(z, "routes.txt") if r.get("route_id")},
     }
     if stop_times:
+        # Where the realtime feed names a trip but not its route (NICTD:
+        # route_id always empty, trip_id the train number).
+        out["trip_routes"] = {r["trip_id"]: r["route_id"]
+                              for r in _rows_opt(z, "trips.txt")
+                              if r.get("trip_id") and r.get("route_id")}
         st: dict[str, dict[str, list[str]]] = {}
         for r in _rows(z, "stop_times.txt"):
             trip, seq = r.get("trip_id"), r.get("stop_sequence")
@@ -131,27 +168,35 @@ def _resolve(stu, trip_id: str, start_date: str | None,
     # Only a sequence: the timetable says which station and when, the
     # delay says how late (NICTD).
     if not stu.HasField("stop_sequence"):
-        return None, None
+        return (stops.get(stop_id) if stop_id else None), None
     row = static.get("stop_times", {}).get(trip_id, {}).get(str(stu.stop_sequence))
+    if row is None:
+        return (stops.get(stop_id) if stop_id else None), None
+    name = stops.get(stop_id or row[0])
     delay = _update_delay(stu)
-    if row is None or delay is None:
-        return None, None
     sched = _scheduled_epoch(row[1], tz, now, start_date)
-    if sched is None:
-        return None, None
-    return stops.get(stop_id or row[0]), sched + delay
+    if delay is None or sched is None:
+        return name, None
+    return name, sched + delay
 
 
 def next_stops(feed, static: dict[str, Any] | None,
-               now: float) -> dict[str, tuple[str, float]]:
-    """{trip_id: (next station's name, estimated arrival epoch)}.
+               now: float) -> dict[str, tuple[str, float | None]]:
+    """{trip_id: (next station's name, estimated arrival epoch or None)}.
 
     The next station is the first stop update, in sequence order, that is
-    not already behind the train (PAST_S) and not implausibly far ahead
-    (AHEAD_S). A trip with nothing resolvable is simply absent: no name is
+    not already behind the train (PAST_S). Its time is dropped, the station
+    kept, when the update carries none or one implausibly far ahead
+    (AHEAD_S): Lee 2026-10-03, "station with no time is fine; time with no
+    station is meaningless". A trip with no NAME is absent: no name is
     guessed and no station code is shown in its place.
+
+    ! Inferred, not measured: an update with no time cannot be checked
+    against PAST_S, so it is taken to be ahead of the train. GTFS-RT feeds
+    list the stops still to come; one that kept a served stop with no time
+    would show that stop until it drops off.
     """
-    out: dict[str, tuple[str, float]] = {}
+    out: dict[str, tuple[str, float | None]] = {}
     if feed is None or not static or static.get("v") != STATIC_VERSION:
         return out
     try:
@@ -170,14 +215,13 @@ def next_stops(feed, static: dict[str, Any] | None,
                          key=lambda s: s.stop_sequence if s.HasField("stop_sequence") else 0)
         for stu in updates:
             name, when = _resolve(stu, trip_id, start, static, tz, now)
-            if when is None:
-                break            # cannot tell which stop is next: say nothing
-            if when < now - PAST_S:
+            if when is not None and when < now - PAST_S:
                 continue         # already served
             # The next stop. Unnamed (a stop_id the timetable lacks) means
             # nothing is shown, never the stop AFTER it as if it were next.
-            if name and when <= now + AHEAD_S:
-                out[trip_id] = (name, when)
+            if name:
+                ok = when is not None and when <= now + AHEAD_S
+                out[trip_id] = (name, when if ok else None)
             break
     return out
 

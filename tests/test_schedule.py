@@ -79,8 +79,22 @@ class MetraShape(unittest.TestCase):
                             {"seq": 2, "stop_id": "IRVINGPK", "arr": NOW + 300}]})
         self.assertEqual(schedule.next_stops(fm, METRA_STATIC, NOW), {})
 
-    def test_hours_ahead_is_not_next(self):
+    def test_hours_ahead_keeps_the_station_not_the_time(self):
+        # Lee 2026-10-03: a station with no time is fine. A time hours out
+        # is a wrong date, so it is dropped; the station is not.
         fm = tu_feed({"t": [{"seq": 1, "stop_id": "IRVINGPK", "arr": NOW + 4 * 3600}]})
+        self.assertEqual(schedule.next_stops(fm, METRA_STATIC, NOW), {"t": ("Irving Park", None)})
+
+    def test_named_stop_with_no_time_is_published_without_one(self):
+        # The 2026-10-02 probe: 4 of 40 Metra trip updates named the next
+        # stop and carried no time.
+        fm = tu_feed({"t": [{"seq": 3, "stop_id": "IRVINGPK"},
+                            {"seq": 4, "stop_id": "JEFFERSONP", "arr": NOW + 600}]})
+        self.assertEqual(schedule.next_stops(fm, METRA_STATIC, NOW), {"t": ("Irving Park", None)})
+
+    def test_no_name_and_no_time_says_nothing(self):
+        fm = tu_feed({"t": [{"seq": 3, "stop_id": "NOWHERE"},
+                            {"seq": 4, "stop_id": "IRVINGPK", "arr": NOW + 600}]})
         self.assertEqual(schedule.next_stops(fm, METRA_STATIC, NOW), {})
 
     def test_sequence_order_not_feed_order(self):
@@ -104,9 +118,10 @@ class NictdShape(unittest.TestCase):
         got = schedule.next_stops(fm, NICTD_STATIC, NOW)
         self.assertEqual(got["232"], ("Kensington", at(2026, 10, 2, 20, 0)))
 
-    def test_no_delay_no_estimate(self):
+    def test_no_delay_station_without_estimate(self):
         fm = tu_feed({"232": [{"seq": 7}]})
-        self.assertEqual(schedule.next_stops(fm, NICTD_STATIC, NOW), {})
+        self.assertEqual(schedule.next_stops(fm, NICTD_STATIC, NOW),
+                         {"232": ("57th St. (Hyde Park)", None)})
 
     def test_trip_missing_from_timetable(self):
         fm = tu_feed({"555": [{"seq": 7, "delay": 0}]})
@@ -182,6 +197,46 @@ class Distill(unittest.TestCase):
         d = schedule.distill(_zip(self.FILES), stop_times=True)
         self.assertEqual(d["stop_times"], {"232": {"7": ["s5", "19:48:00"]}})
 
+    def test_no_routes_or_trips_file_still_distils(self):
+        d = schedule.distill(_zip(self.FILES), stop_times=True)
+        self.assertEqual(d["routes"], {})
+        self.assertEqual(d["trip_routes"], {})
+        self.assertEqual(d["stops"], {"IRVINGPK": "Irving Park"})
+
+    def test_route_names_long_then_short_whitespace_squeezed(self):
+        files = {**self.FILES,
+                 "routes.txt": "route_id, route_short_name, route_long_name\r\n"
+                               "MD-N, MD-N, Milwaukee North\r\n"
+                               "mo_co, MC, Monon  Corridor\r\n"
+                               "X, Short Only, \r\n",
+                 "trips.txt": "route_id,service_id,trip_id\nmo_co,a,1601\nso_shore,a,232\n"}
+        d = schedule.distill(_zip(files), stop_times=True)
+        self.assertEqual(d["routes"], {"MD-N": "Milwaukee North", "mo_co": "Monon Corridor",
+                                       "X": "Short Only"})
+        self.assertEqual(d["trip_routes"], {"1601": "mo_co", "232": "so_shore"})
+        self.assertNotIn("trip_routes", schedule.distill(_zip(files), stop_times=False))
+
+
+class LineName(unittest.TestCase):
+    STATIC = {"v": schedule.STATIC_VERSION,
+              "routes": {"UP-NW": "Union Pacific Northwest", "so_shore": "Lakeshore Corridor",
+                         "mo_co": "Monon Corridor"},
+              "trip_routes": {"232": "so_shore", "1601": "mo_co"}}
+
+    def test_by_line_when_the_line_is_a_route_id(self):
+        self.assertEqual(schedule.line_name(self.STATIC, "UP-NW", "UP-NW_UNW669_V2_C"),
+                         "Union Pacific Northwest")
+
+    def test_by_trip_when_the_line_is_ours(self):
+        self.assertEqual(schedule.line_name(self.STATIC, "lakeshore", "232"), "Lakeshore Corridor")
+        self.assertEqual(schedule.line_name(self.STATIC, "monon", " 1601 "), "Monon Corridor")
+
+    def test_none_when_unknown_or_no_timetable(self):
+        self.assertIsNone(schedule.line_name(self.STATIC, "BNSF", None))
+        self.assertIsNone(schedule.line_name(self.STATIC, None, "9999"))
+        self.assertIsNone(schedule.line_name(None, "UP-NW", None))
+        self.assertIsNone(schedule.line_name({**self.STATIC, "v": 1}, "UP-NW", None))
+
 
 class ToTheMap(unittest.TestCase):
     def _obs(self, **kw):
@@ -208,10 +263,34 @@ class ToTheMap(unittest.TestCase):
 
     def test_never_on_equipment_not_in_service(self):
         f = fleet_mod.Fleet()
-        out = f.update([self._obs(in_service=False, train=None, line=None)], NOW,
+        # A line on equipment out of service is possible (a Monon unit laying
+        # over, nictd.py); it still runs no line.
+        out = f.update([self._obs(in_service=False, train=None)], NOW,
                        show_parked=True,
-                       next_stops={"UP-NW_UNW669_V2_C": ("Irving Park", NOW + 240)})
+                       next_stops={"UP-NW_UNW669_V2_C": ("Irving Park", NOW + 240)},
+                       static=LineName.STATIC)
         self.assertNotIn("next_stop", out["vehicles"]["8461"])
+        self.assertNotIn("line_name", out["vehicles"]["8461"])
+
+    def test_station_without_time_reaches_the_map_alone(self):
+        f = fleet_mod.Fleet()
+        out = f.update([self._obs()], NOW, next_stops={"UP-NW_UNW669_V2_C": ("Irving Park", None)})
+        attrs = attributes.to_attributes(out["vehicles"]["8461"], "metra")
+        self.assertEqual(attrs["next_stop"], "Irving Park")
+        self.assertNotIn("arrival_estimated_at", attrs)
+
+    def test_line_name_reaches_the_map(self):
+        f = fleet_mod.Fleet()
+        out = f.update([self._obs()], NOW, static=LineName.STATIC)
+        attrs = attributes.to_attributes(out["vehicles"]["8461"], "metra")
+        self.assertEqual(attrs["line_name"], "Union Pacific Northwest")
+        self.assertEqual(attrs["line"], "UP-NW")
+
+    def test_no_line_name_without_a_timetable(self):
+        f = fleet_mod.Fleet()
+        out = f.update([self._obs()], NOW)
+        self.assertNotIn("line_name", out["vehicles"]["8461"])
+        self.assertNotIn("line_name", attributes.to_attributes(out["vehicles"]["8461"], "metra"))
 
 
 class ParsersCarryTripId(unittest.TestCase):
