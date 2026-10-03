@@ -27,6 +27,8 @@ PASSTHROUGH = (
     "icon_rotation_basis",
     "position_jump",
     "delay_min",
+    "next_stop",
+    "arrival_estimated_at",
     "marker_color",
     "marker_label_color",
     "marker_label_outline_color",

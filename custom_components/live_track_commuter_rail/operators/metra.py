@@ -127,6 +127,7 @@ def parse(feed) -> list[Obs]:
             train=_train(v) if in_service else None,
             line=route or None,
             reported_course=course,
+            trip_id=((v.trip.trip_id or "").strip() or None) if in_service else None,
         ))
     return out
 
@@ -137,6 +138,11 @@ METRA = Operator(
     short="Metra",
     regions=("US-IL", "US-WI"),
     positions_url="https://gtfspublic.metrarr.com/gtfs/public/positions",
+    # Next stop by stop_id with an absolute arrival time: 36 of 46 trains in
+    # service, 2026-10-02 19:45 (bin\ltcr_eta_probe.txt). Same key.
+    trip_updates_url="https://gtfspublic.metrarr.com/gtfs/public/tripupdates",
+    # Public, no key. Only stops.txt is read: the realtime feed names the stop.
+    static_url="https://schedules.metrarail.com/gtfs/schedule.zip",
     parse=parse,
     styling=styling,
     attribution=(

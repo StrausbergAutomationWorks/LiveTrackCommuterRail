@@ -46,6 +46,13 @@ equipment.
 * `course_deg` while the train moves; at rest it is left out, and
   `icon_rotation_deg` with `icon_rotation_basis: held` keeps the last
   direction for the marker's arrow.
+* `next_stop` (the station's name) and `arrival_estimated_at` (when it is
+  expected, ISO 8601 UTC) on a train in service whose next station the
+  railroad's feed can resolve; absent otherwise. Metra's feed names the stop
+  and its time; South Shore's gives only a stop number and a delay, so the
+  railroad's published timetable supplies the station and the scheduled time.
+  The timetable is downloaded once a day (no key) and cached in
+  `.storage/saw_gtfs_<railroad>.json`.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

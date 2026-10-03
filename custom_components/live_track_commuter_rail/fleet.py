@@ -38,6 +38,7 @@ from saw_livetrack import FixTracker
 
 from .const import GRACE_S, HOLD_S, JITTER_M, MAX_SEGMENT_S, REST_S
 from .operators.base import Obs
+from .schedule import iso_utc
 
 
 def metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -118,6 +119,7 @@ class Fleet:
         *,
         show_parked: bool = False,
         delays: dict[str, int] | None = None,
+        next_stops: dict[str, tuple[str, float]] | None = None,
     ) -> dict[str, Any]:
         vehicles: dict[str, dict[str, Any]] = {}
         seen: set[str] = set()
@@ -161,7 +163,7 @@ class Fleet:
             if not visible:
                 continue
             moving = since is not None and since <= self._rest_s
-            vehicles[vid] = self._record(obs, seg, moving, jumped, delays)
+            vehicles[vid] = self._record(obs, seg, moving, jumped, delays, next_stops)
 
         departed: list[str] = []
         # Published before, still in the feed, now hidden: parked long enough.
@@ -189,7 +191,8 @@ class Fleet:
         }
 
     def _record(self, obs: Obs, seg: dict, moving: bool, jumped: bool,
-                delays: dict[str, int] | None) -> dict[str, Any]:
+                delays: dict[str, int] | None,
+                next_stops: dict[str, tuple[str, float]] | None = None) -> dict[str, Any]:
         vid = obs.vehicle_id
         if obs.in_service:
             label = obs.train or vid
@@ -245,6 +248,12 @@ class Fleet:
 
         if obs.in_service and delays and obs.train in delays:
             rec["delay_min"] = round(delays[obs.train] / 60)
+        # Next station and when (schedule.py). Only in service, only when the
+        # trip resolved; otherwise both keys are absent, never empty (D0).
+        nxt = next_stops.get(obs.trip_id) if (obs.in_service and next_stops and obs.trip_id) else None
+        if nxt is not None:
+            rec["next_stop"] = nxt[0]
+            rec["arrival_estimated_at"] = iso_utc(nxt[1])
         if self._styling is not None:
             rec.update(self._styling(obs))
         return rec

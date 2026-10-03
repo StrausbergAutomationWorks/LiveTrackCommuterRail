@@ -38,6 +38,8 @@ from .const import (
 )
 from .fleet import Fleet
 from .operators import Operator
+from .schedule import next_stops as next_stops_from
+from .statics import StaticTimetable
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,6 +104,7 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._show_parked = bool(opts.get(CONF_SHOW_PARKED, DEFAULT_SHOW_PARKED))
         self._session = async_get_clientsession(hass)
         self.fleet = Fleet(styling=op.styling)
+        self._static = StaticTimetable(hass, self._session, op)
         self._failures = 0
         self._last_good: dict[str, Any] | None = None
         self.feed_timestamp: int | None = None
@@ -124,19 +127,30 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"{op.name} positions unavailable ({self._failures} consecutive failures)")
         self._failures = 0
 
+        # The timetable loads and refreshes in the background; until it has,
+        # no next station is published and nothing else changes.
+        if self._static.due():
+            self.config_entry.async_create_background_task(
+                self.hass, self._static.async_refresh(), f"{op.id} timetable")
+
+        now = time.time()
         delays = None
-        if op.trip_updates_url and op.parse_delays:
+        next_stops = None
+        if op.trip_updates_url and (op.parse_delays or op.static_url):
             try:
                 tu = await fetch_feed(self._session, op.trip_updates_url, self._params)
             except AuthError:
                 tu = None
             if tu is not None:
-                delays = op.parse_delays(tu)
+                if op.parse_delays:
+                    delays = op.parse_delays(tu)
+                if self._static.data is not None:
+                    next_stops = next_stops_from(tu, self._static.data, now)
 
         if feed.header.HasField("timestamp"):
             self.feed_timestamp = int(feed.header.timestamp)
         result = self.fleet.update(
-            op.parse(feed), time.time(),
-            show_parked=self._show_parked, delays=delays)
+            op.parse(feed), now,
+            show_parked=self._show_parked, delays=delays, next_stops=next_stops)
         self._last_good = result
         return result

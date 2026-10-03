@@ -90,6 +90,7 @@ def parse(feed) -> list[Obs]:
             train=(trip or label) if in_service else None,
             line=line_of(trip),
             reported_course=None,
+            trip_id=(trip or None) if in_service else None,
         ))
     return out
 
@@ -131,6 +132,14 @@ NICTD = Operator(
         "https://s3.amazonaws.com/etatransit.gtfs/"
         "southshore.etaspot.net/trip_updates.pb"
     ),
+    # Same ETA SPOT bucket, no key. Its trip_ids are the train numbers the
+    # realtime feed uses, and (trip, stop_sequence) resolved all 3 trains
+    # tried, 2026-10-02 19:48 (bin\ltcr_nictd_static_check.txt).
+    static_url=(
+        "https://s3.amazonaws.com/etatransit.gtfs/"
+        "southshore.etaspot.net/gtfs.zip"
+    ),
+    static_stop_times=True,
     parse=parse,
     parse_delays=parse_delays,
     styling=styling,

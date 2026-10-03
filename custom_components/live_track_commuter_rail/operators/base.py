@@ -36,6 +36,9 @@ class Obs:
     # None where the source has no usable course. Used only when the vehicle
     # has just moved; at rest it is ignored (Metra reports 359.0 there).
     reported_course: float | None = None
+    # The GTFS-RT trip_id while in service: what a TripUpdate is keyed by.
+    # Never an identity (NICTD's is the bare train number, and repeats).
+    trip_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +61,12 @@ class Operator:
     trip_updates_url: str | None = None
     # TripUpdates -> {train number: delay in seconds}
     parse_delays: Callable[[Any], dict[str, int]] | None = None
+    # The operator's GTFS static zip, for next-station names (schedule.py).
+    # None: no next station is published.
+    static_url: str | None = None
+    # True where TripUpdates name a stop only by sequence, so the timetable's
+    # stop_times are needed to know which station and when (NICTD).
+    static_stop_times: bool = False
     # Obs -> marker styling keys (06_MAP_CONTRACT.md D4a), each only when set.
     styling: Callable[[Obs], dict[str, Any]] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
