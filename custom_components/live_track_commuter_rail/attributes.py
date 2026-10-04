@@ -27,6 +27,7 @@ PASSTHROUGH = (
     "icon_rotation_deg",
     "icon_rotation_basis",
     "position_jump",
+    "stalled",
     "delay_min",
     "next_stop",
     "arrival_estimated_at",

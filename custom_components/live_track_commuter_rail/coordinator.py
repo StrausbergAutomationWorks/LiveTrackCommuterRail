@@ -38,6 +38,7 @@ from .const import (
 from saw_livetrack.gtfs import Fleet, decode
 from .operators import Operator
 from saw_livetrack.gtfs import next_stops as next_stops_from
+from saw_livetrack.gtfs import stop_delays
 from .statics import StaticTimetable
 
 _LOGGER = logging.getLogger(__name__)
@@ -132,6 +133,7 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         now = time.time()
         delays = None
         next_stops = None
+        trip_delays = None
         if op.trip_updates_url and (op.parse_delays or op.static_url):
             try:
                 tu = await fetch_feed(self._session, op.trip_updates_url, self._params)
@@ -140,6 +142,10 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if tu is not None:
                 if op.parse_delays:
                     delays = op.parse_delays(tu)
+                # Delay at the next stop, one rule for every feed (backlog 275):
+                # the update's own delay, else predicted minus scheduled, which
+                # needs the timetable. Fleet prefers it to parse_delays.
+                trip_delays = stop_delays(tu, self._static.data, now)
                 if self._static.data is not None:
                     next_stops = next_stops_from(tu, self._static.data, now)
 
@@ -148,6 +154,6 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         result = self.fleet.update(
             op.parse(feed), now,
             show_parked=self._show_parked, delays=delays, next_stops=next_stops,
-            static=self._static.data)
+            static=self._static.data, trip_delays=trip_delays)
         self._last_good = result
         return result
