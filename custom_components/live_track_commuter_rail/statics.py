@@ -27,7 +27,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import USER_AGENT
 from .operators import Operator
-from .schedule import STATIC_VERSION, distill
+from saw_livetrack.gtfs import STATIC_VERSION, distill
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -10,8 +10,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/StrausbergAutomationWorks/LiveTrackCommuterRail/issues",
   "requirements": [
-    "gtfs-realtime-bindings==1.0.0",
-    "saw-livetrack>=0.1.0"
+    "saw-livetrack[gtfs]>=0.2.0,<0.3"
   ],
   "version": "0.1.0"
 }

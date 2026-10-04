@@ -18,7 +18,6 @@ from datetime import timedelta
 from typing import Any
 
 import aiohttp
-from google.transit import gtfs_realtime_pb2
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -36,9 +35,9 @@ from .const import (
     REQUEST_TIMEOUT,
     USER_AGENT,
 )
-from .fleet import Fleet
+from saw_livetrack.gtfs import Fleet, decode
 from .operators import Operator
-from .schedule import next_stops as next_stops_from
+from saw_livetrack.gtfs import next_stops as next_stops_from
 from .statics import StaticTimetable
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,12 +70,9 @@ async def fetch_feed(session: aiohttp.ClientSession, url: str,
     except (aiohttp.ClientError, TimeoutError) as err:
         _LOGGER.debug("feed fetch failed: %s", type(err).__name__)
         return None
-    try:
-        feed = gtfs_realtime_pb2.FeedMessage()
-        feed.ParseFromString(raw)
-    except Exception as err:  # noqa: BLE001 - a bad payload, whatever its shape
-        _LOGGER.debug("feed decode failed: %s", type(err).__name__)
-        return None
+    feed = decode(raw)
+    if feed is None:
+        _LOGGER.debug("feed decode failed")
     return feed
 
 
