@@ -36,6 +36,7 @@ from .const import (
     USER_AGENT,
 )
 from saw_livetrack.gtfs import Fleet, decode
+from . import rail
 from .operators import Operator
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
@@ -108,6 +109,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.feed_timestamp: int | None = None
         self.trip_coverage: tuple[int, int] | None = None
         self._timetable_stale = False
+        self._rail_loaded = False
+        self.rail_segments: int | None = None
 
     @property
     def timetable(self) -> dict[str, Any] | None:
@@ -148,6 +151,16 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(
                 f"{op.name} positions unavailable ({self._failures} consecutive failures)")
         self._failures = 0
+
+        if not self._rail_loaded:
+            # Once, off the event loop: the rail this railroad runs on (SSOT
+            # 7.10). Without a file there is no check and nothing changes.
+            self._rail_loaded = True
+            idx = await self.hass.async_add_executor_job(rail.load, op.id)
+            if idx is not None:
+                self.fleet.on_rail = rail.check(idx)
+                self.rail_segments = len(idx)
+            _LOGGER.debug("%s rail: %s segments", op.id, self.rail_segments)
 
         # The timetable loads and refreshes in the background; until it has,
         # no next station is published and nothing else changes.

@@ -73,3 +73,12 @@ MAP_LAYER = "rail"
 # answer; half is the choice. Below 5 trips (overnight) nothing is decided.
 COVERAGE_MIN_TRIPS = 5
 COVERAGE_MIN_SHARE = 0.5
+
+# --- Off rail (Lee 2026-10-08; SSOT 7.10) --------------------------------
+# A train in service whose position is farther than this from every railway
+# in rail/<operator>.json.gz is refused (saw_livetrack Fleet's on_rail).
+# MEASURED 2026-10-08 against FRA NARN track: every real Metra and NICTD fix
+# in 9,109 lay within 210 m (RI 705 near Joliet; Millennium Station's
+# underground platforms 144 m); the bad unit (8426, UP-N 835) never came
+# closer than 374 m (bin\ltcr_offshape_narn.txt, ltcr_rail_size.txt).
+OFF_RAIL_M = 300.0
