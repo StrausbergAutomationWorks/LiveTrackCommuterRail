@@ -5,13 +5,20 @@ Built by tools/build_rail.py from the FRA North American Rail Network Lines (NTA
 a US Government work in the public domain, clipped to 3 km around the railroad's own GTFS
 shapes and simplified at 10 m. A railroad without a file gets no check, and every fix it
 reports is published as before.
+
+Since 2026-10-09 the railroad's own GTFS shapes count as rail too (RailCheck): NARN lacks
+lines newer than it, such as NICTD's Monon Corridor south of Hammond.
 """
 
 from __future__ import annotations
 
+import csv
 import gzip
+import io
 import json
+import math
 import os
+import zipfile
 from typing import Callable
 
 from saw_livetrack.rail import RailIndex
@@ -39,3 +46,113 @@ def load(operator_id: str) -> RailIndex | None:
 def check(idx: RailIndex) -> Callable[[float, float], bool]:
     """Fleet's on_rail: some rail within OFF_RAIL_M."""
     return lambda lat, lon: idx.near(lat, lon, OFF_RAIL_M)
+
+
+# --- The railroad's own route lines (2026-10-09 00:20; SSOT 7.10) -------------
+# NARN does not carry every line: NICTD's Monon Corridor south of Hammond, opened
+# in 2025, is absent, and Monon train 1035 was refused on the box 0.2-0.5 m from
+# NICTD's own published route and 2.0-2.3 km from any NARN track. So "on rail"
+# is within OFF_RAIL_M of NARN track OR of the railroad's own GTFS shapes. The
+# shapes come from the timetable each install downloads itself (statics.py); no
+# operator data ships with the integration.
+
+SHAPE_TOLERANCE_M = 10.0
+_M_PER_DEG = 111195.0
+
+
+def simplify(pl: list, tol: float) -> list:
+    """Douglas-Peucker on a local flat projection; the first and last points stay."""
+    if len(pl) < 3:
+        return pl
+    kx = math.cos(math.radians(pl[0][0])) * _M_PER_DEG
+    xy = [(lon * kx, lat * _M_PER_DEG) for lat, lon in pl]
+    keep = [False] * len(pl)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pl) - 1)]
+    while stack:
+        i, j = stack.pop()
+        (ax, ay), (bx, by) = xy[i], xy[j]
+        dx, dy = bx - ax, by - ay
+        den = dx * dx + dy * dy
+        best, bi = -1.0, None
+        for k in range(i + 1, j):
+            px, py = xy[k]
+            t = 0.0 if den == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / den))
+            d = math.hypot(px - ax - t * dx, py - ay - t * dy)
+            if d > best:
+                best, bi = d, k
+        if bi is not None and best > tol:
+            keep[bi] = True
+            stack += [(i, bi), (bi, j)]
+    return [p for p, k in zip(pl, keep) if k]
+
+
+def shapes_from_zip(raw: bytes) -> list[list[list[float]]]:
+    """The railroad's GTFS shapes as lines of [lat, lon]: by sequence, simplified at
+    SHAPE_TOLERANCE_M, rounded to 5 decimals, duplicates (either direction) dropped.
+    [] when the timetable has no shapes.txt. Keys and values are stripped (Metra
+    writes a space after each comma). Blocking: run it in an executor."""
+    z = zipfile.ZipFile(io.BytesIO(raw))
+    if "shapes.txt" not in z.namelist():
+        return []
+    pts: dict[str, list] = {}
+    with z.open("shapes.txt") as fh:
+        for r in csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8-sig")):
+            r = {(k or "").strip(): (v or "").strip() for k, v in r.items() if k}
+            try:
+                pts.setdefault(r["shape_id"], []).append(
+                    (float(r["shape_pt_sequence"]), float(r["shape_pt_lat"]), float(r["shape_pt_lon"])))
+            except (KeyError, ValueError):
+                continue
+    out, seen = [], set()
+    for sid in sorted(pts):
+        pl = simplify([(a, b) for _, a, b in sorted(pts[sid])], SHAPE_TOLERANCE_M)
+        q = []
+        for a, b in pl:
+            p = [round(a, 5), round(b, 5)]
+            if not q or q[-1] != p:
+                q.append(p)
+        key = tuple(map(tuple, q))
+        if len(q) < 2 or key in seen or key[::-1] in seen:
+            continue
+        seen.add(key)
+        out.append(q)
+    return out
+
+
+class RailCheck:
+    """Fleet's on_rail: within OFF_RAIL_M of NARN track OR of the railroad's own shapes.
+
+    Until the railroad's timetable has loaded (set_shapes never given one), nothing
+    is refused: a line NARN lacks must not be judged on NARN alone. With neither
+    NARN nor any shape, nothing is refused either.
+    """
+
+    def __init__(self, narn: RailIndex | None) -> None:
+        self._narn = narn
+        self._shapes: RailIndex | None = None
+        self._key = None
+
+    @property
+    def shape_segments(self) -> int | None:
+        return None if self._shapes is None else len(self._shapes)
+
+    def set_shapes(self, static: dict | None) -> None:
+        """Take the shapes from a distilled timetable; rebuilt only when it changes."""
+        if not static or "rail_shapes" not in static:
+            return
+        key = static.get("fetched_at")
+        if self._shapes is not None and key == self._key:
+            return
+        self._key = key
+        self._shapes = RailIndex(static.get("rail_shapes") or [])
+
+    def __call__(self, lat: float, lon: float) -> bool:
+        if self._shapes is None:
+            return True
+        narn = self._narn is not None and len(self._narn) > 0
+        if not narn and not len(self._shapes):
+            return True
+        if narn and self._narn.near(lat, lon, OFF_RAIL_M):
+            return True
+        return self._shapes.near(lat, lon, OFF_RAIL_M)

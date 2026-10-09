@@ -29,5 +29,6 @@ async def async_get_config_entry_diagnostics(
         "fleet": coordinator.fleet.stats(),
         "timetable": coordinator.timetable,
         "rail_segments": coordinator.rail_segments,
+        "rail_shape_segments": coordinator.rail_shape_segments,
         "trip_coverage": coordinator.trip_coverage,
     }

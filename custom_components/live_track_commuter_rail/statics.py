@@ -28,6 +28,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 
 from .const import USER_AGENT
+from . import rail
 from .operators import Operator
 from saw_livetrack.gtfs import STATIC_VERSION, distill
 
@@ -37,6 +38,14 @@ REFRESH_S = 24 * 3600
 RETRY_S = 3600
 FETCH_TIMEOUT = 60
 MAX_BYTES = 20 * 1024 * 1024
+
+
+def _distill(raw: bytes, stop_times: bool) -> dict[str, Any]:
+    """distill, plus the railroad's own route lines for the off-rail check
+    (rail.RailCheck, SSOT 7.10)."""
+    d = distill(raw, stop_times=stop_times)
+    d["rail_shapes"] = rail.shapes_from_zip(raw)
+    return d
 
 
 class StaticTimetable:
@@ -100,7 +109,9 @@ class StaticTimetable:
                 d = json.load(fh)
         except (OSError, ValueError):
             return None
-        return d if isinstance(d, dict) and d.get("v") == STATIC_VERSION else None
+        # A cache from before 2026-10-09 has no rail_shapes: fetched again, once.
+        return (d if isinstance(d, dict) and d.get("v") == STATIC_VERSION and "rail_shapes" in d
+                else None)
 
     def _write(self, d: dict[str, Any]) -> None:
         tmp = self._path + ".tmp"
@@ -138,7 +149,7 @@ class StaticTimetable:
                 _LOGGER.debug("%s timetable larger than %s bytes; ignored", op.id, MAX_BYTES)
                 return self._data
             d = await self._hass.async_add_executor_job(
-                lambda: distill(raw, stop_times=op.static_stop_times))
+                lambda: _distill(raw, op.static_stop_times))
             d["fetched_at"] = now
             d["source"] = op.static_url
             await self._hass.async_add_executor_job(self._write, d)

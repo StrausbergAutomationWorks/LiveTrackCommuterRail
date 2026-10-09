@@ -54,12 +54,16 @@ equipment.
   The timetable is downloaded once a day (no key) and cached in
   `.storage/saw_gtfs_<railroad>.json`.
 * **A position that is not on any railway is refused.** A train in service
-  reported more than 300 m from track is shown at its last position that was,
+  reported more than 300 m from track (any railway in the FRA North American
+  Rail Network, or the railroad's own published route) is shown at its last
+  position that was,
   for up to 10 minutes, then hidden until it is back on track; `observed_at`
   says how old the shown position is. A train first seen off track is not
   shown. The track is the FRA North American Rail Network (US DOT, NTAD), a US
   Government work in the public domain, shipped with the integration in
-  `rail/` and rebuilt with `tools/build_rail.py`.
+  `rail/` and rebuilt with `tools/build_rail.py`; the railroad's own route comes
+  from the timetable the integration already downloads. Nothing is refused until
+  that timetable has loaded.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

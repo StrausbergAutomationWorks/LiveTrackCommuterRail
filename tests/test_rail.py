@@ -87,5 +87,78 @@ class Loader(unittest.TestCase):
         self.assertEqual(const.OFF_RAIL_M, 300.0)
 
 
+def _zip(files):
+    import io as _io
+    import zipfile as _zf
+    b = _io.BytesIO()
+    with _zf.ZipFile(b, "w") as z:
+        for name, text in files.items():
+            z.writestr(name, text)
+    return b.getvalue()
+
+
+MONON_1035 = [(41.582932, -87.518532), (41.582489, -87.518517), (41.57925, -87.518448)]
+
+
+class OwnShapes(unittest.TestCase):
+    """2026-10-09: NARN lacks NICTD's Monon Corridor south of Hammond (opened 2025).
+    Monon 1035 was 0.2-0.5 m from NICTD's own shape and 2.0-2.3 km from NARN."""
+
+    SHAPES = ("shape_id, shape_pt_lat, shape_pt_lon, shape_pt_sequence\r\n"
+              "A, 41.58, -87.5185, 3\r\nA, 41.60, -87.5185, 1\r\nA, 41.59, -87.5185, 2\r\n"
+              "B, 41.58, -87.5185, 1\r\nB, 41.59, -87.5185, 2\r\nB, 41.60, -87.5185, 3\r\n")
+
+    def test_shapes_by_sequence_simplified_and_deduplicated(self):
+        got = rail.shapes_from_zip(_zip({"shapes.txt": self.SHAPES}))
+        # A runs 41.60 -> 41.58 by sequence; its middle point is collinear and dropped;
+        # B is A reversed and is dropped as a duplicate.
+        self.assertEqual(got, [[[41.6, -87.5185], [41.58, -87.5185]]])
+
+    def test_no_shapes_file(self):
+        self.assertEqual(rail.shapes_from_zip(_zip({"stops.txt": "stop_id\nA\n"})), [])
+
+    def test_the_monon_gap_is_real_in_the_shipped_file(self):
+        on = rail.check(rail.load("nictd"))
+        for p in MONON_1035:
+            self.assertFalse(on(*p), p)
+
+    def test_monon_on_its_own_shape_is_on_rail(self):
+        c = rail.RailCheck(rail.load("nictd"))
+        c.set_shapes({"fetched_at": 1, "rail_shapes": rail.shapes_from_zip(_zip({"shapes.txt": self.SHAPES}))})
+        for p in MONON_1035:
+            self.assertTrue(c(*p), p)
+        self.assertFalse(c(42.366550, -87.788582))          # the lake is still off rail
+        self.assertTrue(c(41.52284, -87.51792))              # NARN still counts
+
+    def test_nothing_refused_before_the_timetable(self):
+        c = rail.RailCheck(rail.load("metra"))
+        self.assertTrue(c(42.366550, -87.788582))
+        c.set_shapes({"fetched_at": 1})                      # a cache without shapes: still waiting
+        self.assertTrue(c(42.366550, -87.788582))
+        c.set_shapes({"fetched_at": 1, "rail_shapes": []})
+        self.assertFalse(c(42.366550, -87.788582))
+        self.assertEqual(c.shape_segments, 0)
+
+    def test_no_rail_at_all_refuses_nothing(self):
+        c = rail.RailCheck(None)
+        c.set_shapes({"fetched_at": 1, "rail_shapes": []})
+        self.assertTrue(c(42.366550, -87.788582))
+
+    def test_shapes_alone_decide_without_narn(self):
+        c = rail.RailCheck(None)
+        c.set_shapes({"fetched_at": 1, "rail_shapes": [[[41.60, -87.5185], [41.58, -87.5185]]]})
+        self.assertTrue(c(41.59, -87.5185))
+        self.assertFalse(c(41.59, -87.40))
+
+    def test_new_timetable_new_shapes_same_timetable_kept(self):
+        c = rail.RailCheck(None)
+        c.set_shapes({"fetched_at": 1, "rail_shapes": [[[41.60, -87.5185], [41.58, -87.5185]]]})
+        c.set_shapes({"fetched_at": 1, "rail_shapes": [[[42.0, -88.0], [42.1, -88.0]]]})
+        self.assertTrue(c(41.59, -87.5185))                  # same fetch: not rebuilt
+        c.set_shapes({"fetched_at": 2, "rail_shapes": [[[42.0, -88.0], [42.1, -88.0]]]})
+        self.assertFalse(c(41.59, -87.5185))
+        self.assertTrue(c(42.05, -88.0))
+
+
 if __name__ == "__main__":
     unittest.main()

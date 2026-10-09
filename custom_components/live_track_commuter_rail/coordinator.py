@@ -111,10 +111,15 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._timetable_stale = False
         self._rail_loaded = False
         self.rail_segments: int | None = None
+        self._rail_check: rail.RailCheck | None = None
 
     @property
     def timetable(self) -> dict[str, Any] | None:
         return self._static.info
+
+    @property
+    def rail_shape_segments(self) -> int | None:
+        return self._rail_check.shape_segments if self._rail_check else None
 
     def _check_timetable(self, hit: int, total: int) -> None:
         """Refresh the timetable early when it does not know the realtime
@@ -157,8 +162,11 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # 7.10). Without a file there is no check and nothing changes.
             self._rail_loaded = True
             idx = await self.hass.async_add_executor_job(rail.load, op.id)
+            # NARN track OR the railroad's own route (rail.RailCheck): NARN lacks
+            # lines newer than it, such as NICTD's Monon Corridor south of Hammond.
+            self._rail_check = rail.RailCheck(idx)
+            self.fleet.on_rail = self._rail_check
             if idx is not None:
-                self.fleet.on_rail = rail.check(idx)
                 self.rail_segments = len(idx)
             _LOGGER.debug("%s rail: %s segments", op.id, self.rail_segments)
 
@@ -188,6 +196,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._check_timetable(*trip_coverage(tu, self._static.data))
                     next_stops = next_stops_from(tu, self._static.data, now)
 
+        if self._rail_check is not None:
+            self._rail_check.set_shapes(self._static.data)
         if feed.header.HasField("timestamp"):
             self.feed_timestamp = int(feed.header.timestamp)
         result = self.fleet.update(

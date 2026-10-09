@@ -170,6 +170,27 @@ class EarlyRefresh(unittest.TestCase):
                 asyncio.run(self.t.async_ensure())
         self.assertEqual(self.session.calls, 3)
 
+    def test_a_cache_without_route_lines_is_fetched_again(self):
+        # Written before 2026-10-09: no rail_shapes, so the off-rail check would wait
+        # for them until the daily refresh. It is read as no cache at all.
+        import json as _json
+        path = os.path.join(self.tmp, ".storage", "saw_gtfs_metra.json")
+        with open(path, encoding="utf-8") as fh:
+            d = _json.load(fh)
+        self.assertEqual(d["rail_shapes"], [])
+        d.pop("rail_shapes")
+        with open(path, "w", encoding="utf-8") as fh:
+            _json.dump(d, fh)
+        t = statics.StaticTimetable(Hass(self.tmp), self.session, ops.OPERATORS["metra"])
+        asyncio.run(t.async_ensure())
+        self.assertEqual(self.session.calls, 2)
+        self.assertEqual(t.data["rail_shapes"], [])
+
+    def test_a_cache_with_route_lines_is_used(self):
+        t = statics.StaticTimetable(Hass(self.tmp), self.session, ops.OPERATORS["metra"])
+        asyncio.run(t.async_ensure())
+        self.assertEqual(self.session.calls, 1)
+
     def test_a_new_timetable_is_picked_up(self):
         self.session.raw = _zip("V2")
         self.t.request_refresh()
