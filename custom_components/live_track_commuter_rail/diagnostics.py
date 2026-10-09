@@ -27,4 +27,6 @@ async def async_get_config_entry_diagnostics(
                    ("trains_in_service", "non_revenue", "vehicles_in_feed")},
         "published": len(data.get("vehicles") or {}),
         "fleet": coordinator.fleet.stats(),
+        "timetable": coordinator.timetable,
+        "trip_coverage": coordinator.trip_coverage,
     }

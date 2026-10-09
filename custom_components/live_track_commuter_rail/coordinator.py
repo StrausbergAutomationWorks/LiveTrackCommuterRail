@@ -38,7 +38,8 @@ from .const import (
 from saw_livetrack.gtfs import Fleet, decode
 from .operators import Operator
 from saw_livetrack.gtfs import next_stops as next_stops_from
-from saw_livetrack.gtfs import stop_delays
+from saw_livetrack.gtfs import stop_delays, trip_coverage
+from .schedule import timetable_stale
 from .statics import StaticTimetable
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,6 +106,30 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._failures = 0
         self._last_good: dict[str, Any] | None = None
         self.feed_timestamp: int | None = None
+        self.trip_coverage: tuple[int, int] | None = None
+        self._timetable_stale = False
+
+    @property
+    def timetable(self) -> dict[str, Any] | None:
+        return self._static.info
+
+    def _check_timetable(self, hit: int, total: int) -> None:
+        """Refresh the timetable early when it does not know the realtime
+        feed's trips (Metra's GTFS static change renames every trip; delays
+        computed from the old timetable vanish). One warning per episode."""
+        self.trip_coverage = (hit, total)
+        if timetable_stale(hit, total):
+            self._static.request_refresh()
+            if not self._timetable_stale:
+                self._timetable_stale = True
+                _LOGGER.warning(
+                    "%s: %s of %s realtime trips are not in the cached timetable; "
+                    "refreshing it early. Delays are missing until they match",
+                    self.operator.name, total - hit, total)
+        elif self._timetable_stale and total:
+            self._timetable_stale = False
+            _LOGGER.info("%s: realtime trips match the timetable again (%s of %s)",
+                         self.operator.name, hit, total)
 
     async def _async_update_data(self) -> dict[str, Any]:
         op = self.operator
@@ -147,6 +172,7 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # needs the timetable. Fleet prefers it to parse_delays.
                 trip_delays = stop_delays(tu, self._static.data, now)
                 if self._static.data is not None:
+                    self._check_timetable(*trip_coverage(tu, self._static.data))
                     next_stops = next_stops_from(tu, self._static.data, now)
 
         if feed.header.HasField("timestamp"):

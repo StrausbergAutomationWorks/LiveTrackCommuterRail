@@ -98,7 +98,8 @@ def _train(v) -> str | None:
     if label:
         return label
     # Fallback only; the label was set on every routed vehicle measured.
-    # trip_id looks like "UP-NW_UNW601_V3_C" -> "601".
+    # trip_id looks like "UP-NW_UNW601_V3_C" -> "601"; after Metra's 2026 GTFS
+    # change "BNSF_1200_8_2009_5682524" -> "1200": the first _digits_ run, either way.
     m = _TRAIN_IN_TRIP.search(v.trip.trip_id or "")
     return m.group(1) if m else None
 
@@ -141,7 +142,10 @@ METRA = Operator(
     # Next stop by stop_id with an absolute arrival time: 36 of 46 trains in
     # service, 2026-10-02 19:45 (bin\ltcr_eta_probe.txt). Same key.
     trip_updates_url="https://gtfspublic.metrarr.com/gtfs/public/tripupdates",
-    # Public, no key. Only stops.txt is read: the realtime feed names the stop.
+    # Public, no key. Read for station names and coordinates, line names, and the
+    # scheduled times behind delay_min (saw_livetrack.gtfs.distill), by header
+    # name; trip, service and shape ids are joined as opaque strings, never
+    # parsed, so Metra's 2026 GTFS static change needs nothing here (SSOT 7.9).
     static_url="https://schedules.metrarail.com/gtfs/schedule.zip",
     parse=parse,
     styling=styling,

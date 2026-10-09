@@ -44,6 +44,15 @@ class MetraTests(unittest.TestCase):
     def test_train_number_falls_back_to_the_trip_id(self):
         self.assertEqual(self.obs["8599"].train, "841")
 
+    def test_train_number_from_both_trip_id_forms(self):
+        # Metra's 2026 GTFS static change: the train number sits between the
+        # first and second underscores. Today's form keeps its letters.
+        for trip in ("BNSF_BN1200_V4_A", "BNSF_1200_8_2009_5682524"):
+            fm = feeds.feed()
+            feeds.vehicle(fm, "7", vid="8500", route="BNSF", trip=trip)
+            o = metra.parse(fm)[0]
+            self.assertEqual((o.train, o.trip_id), ("1200", trip), trip)
+
     def test_float32_noise_is_rounded_to_six_decimals(self):
         fm = feeds.feed()
         feeds.vehicle(fm, "9", vid="1357", lat=41.860512, lon=-87.618576)

@@ -6,7 +6,9 @@ the DATASET, never after an integration), so anything else that needs the
 same railroad's timetable finds it.
 
 Refreshed once a day; a failed refresh keeps the last good copy and is not
-retried for an hour. Without any copy, no next station is published and
+retried for an hour. Refreshed EARLY when the coordinator finds the realtime feed's trips
+missing from it (request_refresh; Metra's 2026 GTFS static change renames every
+trip), still no more than once an hour. Without any copy, no next station is published and
 nothing else changes: positions never wait for this.
 
 ! NO KEY GOES HERE. Both timetables are public; the realtime key belongs to
@@ -48,10 +50,20 @@ class StaticTimetable:
         self._loaded = False
         self._busy = False
         self._next_try = 0.0
+        self._forced = False   # an early refresh was asked for
 
     @property
     def data(self) -> dict[str, Any] | None:
         return self._data
+
+    @property
+    def info(self) -> dict[str, Any] | None:
+        """Which timetable is cached, for diagnostics."""
+        d = self._data
+        if d is None:
+            return None
+        return {k: d.get(k) for k in ("feed_version", "feed_start", "feed_end", "fetched_at")} | {
+            "trips_scheduled": len(d.get("sched") or {})}
 
     def due(self) -> bool:
         """Worth calling async_ensure: never loaded, stale, and not in a retry wait."""
@@ -60,8 +72,17 @@ class StaticTimetable:
         if not self._loaded:
             return True
         now = time.time()
+        if self._forced and now >= self._next_try:
+            return True
         fresh = self._data is not None and now - float(self._data.get("fetched_at", 0)) < REFRESH_S
         return not fresh and now >= self._next_try
+
+    def request_refresh(self) -> None:
+        """Refresh before the day is out: the realtime feed's trips are not in
+        this timetable (coordinator, trip_coverage). Still at most once per
+        RETRY_S, so a cutover the two feeds make hours apart costs one
+        download an hour, not one a poll."""
+        self._forced = True
 
     async def async_refresh(self) -> None:
         """async_ensure as a background job: positions never wait for it."""
@@ -97,8 +118,9 @@ class StaticTimetable:
             self._data = await self._hass.async_add_executor_job(self._read)
         now = time.time()
         fresh = self._data is not None and now - float(self._data.get("fetched_at", 0)) < REFRESH_S
-        if fresh or now < self._next_try:
+        if (fresh and not self._forced) or now < self._next_try:
             return self._data
+        self._forced = False
         self._next_try = now + RETRY_S
         try:
             async with self._session.get(
@@ -124,5 +146,6 @@ class StaticTimetable:
             _LOGGER.debug("%s timetable refresh failed: %s", op.id, type(err).__name__)
             return self._data
         self._data = d
-        _LOGGER.debug("%s timetable refreshed: %s stops", op.id, len(d.get("stops", {})))
+        _LOGGER.debug("%s timetable refreshed: %s stops, %s trips scheduled, feed_version %s",
+                      op.id, len(d.get("stops", {})), len(d.get("sched", {})), d.get("feed_version"))
         return self._data

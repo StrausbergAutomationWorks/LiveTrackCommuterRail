@@ -62,3 +62,14 @@ MAX_SEGMENT_S = 600
 # The shared map's layer name (06_MAP_CONTRACT.md D10). Every vehicle here is
 # a train, non-revenue moves included (D8). The card owns the number.
 MAP_LAYER = "rail"
+
+# --- Is the cached timetable the realtime feed's? (Metra GTFS change) ----
+# Metra's Developer Change Notice (received 2026-10-08): every trip_id is
+# renamed in both feeds at its cutover, and a timetable refreshed once a day
+# can sit on the wrong side of it for hours, losing every Metra delay with no
+# error. MEASURED on the 40 recorded polls of 2026-10-03: the right timetable
+# knows 739 of 739 Metra and 191 of 191 NICTD trip references; the wrong one
+# knows 0 of 739 (bin\saw_mgc_prove.txt). Any share between is a clear
+# answer; half is the choice. Below 5 trips (overnight) nothing is decided.
+COVERAGE_MIN_TRIPS = 5
+COVERAGE_MIN_SHARE = 0.5
