@@ -315,6 +315,8 @@ class OperatorTests(unittest.TestCase):
         self.assertIs(op.styling, vr.styling)
         self.assertIs(op.decorate, vr.decorate)
         self.assertTrue(op.attribution.startswith("Data: Fintraffic / digitraffic.fi, CC BY 4.0"))
+        # HSL_STATIONS is HSL's data (CC BY 4.0): credited where the operator is shown.
+        self.assertIn("Fare zones: HSL, hsl.fi, CC BY 4.0", op.attribution)
         self.assertIs(ops.OPERATORS["vr_lahijunat"], op)
 
     def test_other_operators_keep_the_defaults(self):

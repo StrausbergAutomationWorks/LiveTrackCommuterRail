@@ -311,7 +311,8 @@ VR_LAHIJUNAT = Operator(
     off_rail_m=OFF_RAIL_M,
     narn=False,
     attribution=(
-        ATTRIBUTION + ". This integration is not sponsored by, affiliated with, or "
+        ATTRIBUTION + ". Fare zones: HSL, hsl.fi, CC BY 4.0 (HSL's timetable of "
+        "2026-10-16). This integration is not sponsored by, affiliated with, or "
         "operated by Fintraffic, VR or HSL."
     ),
     terms_url=TERMS_URL,
