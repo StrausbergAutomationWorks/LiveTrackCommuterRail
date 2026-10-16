@@ -137,6 +137,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(op.max_fix_age_s, 300)
         self.assertEqual(op.off_rail_m, 1000.0)
         self.assertFalse(op.narn)
+        self.assertEqual(op.stall_m, float("inf"))
         self.assertEqual(op.static_route_types, ("2",))
         self.assertGreater(op.static_max_bytes, 36_000_000)
         self.assertIsNone(op.styling)
@@ -153,6 +154,21 @@ class Rules(unittest.TestCase):
                               op.static_route_types, op.static_extras),
                              (None, 300.0, True, None, None, None), oid)
             self.assertEqual(op.static_max_bytes, 20 * 1024 * 1024, oid)
+            self.assertIsNone(op.stall_m, oid)
+
+    def test_one_wait_anywhere(self):
+        # Fleet with SEQ's stall_m: standing 2 km from every stop is stalled only
+        # after PLATFORM_HOLD_S, as at a platform.
+        from saw_livetrack.gtfs import Fleet, PLATFORM_HOLD_S, REST_S, STATIC_VERSION
+        static = {"v": STATIC_VERSION, "stop_pos": {"S": [-27.50, 153.0]}}
+        for stall_m, want in ((None, True), (qr.QR_CITYTRAIN.stall_m, False)):
+            f = Fleet(**({} if stall_m is None else {"stall_m": stall_m}))
+            o = obs(lat=-27.48, lon=153.0)                    # ~2.2 km from the stop
+            f.update([o], 0, static=static)
+            r = f.update([o], REST_S + 1, static=static)["vehicles"][o.vehicle_id]
+            self.assertEqual(r.get("stalled", False), want, stall_m)
+            r = f.update([o], PLATFORM_HOLD_S + 1, static=static)["vehicles"][o.vehicle_id]
+            self.assertTrue(r.get("stalled"), stall_m)
 
 
 class Timetable(unittest.TestCase):

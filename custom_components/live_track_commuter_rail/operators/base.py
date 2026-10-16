@@ -66,6 +66,9 @@ class Operator:
     # (record, the Obs it came from, the distilled timetable or None) -> None: adjusts
     # one record Fleet published, in place (poll.decorate_all). None: nothing.
     decorate: Callable[[dict[str, Any], Obs, dict[str, Any] | None], None] | None = None
+    # Fleet's stall_m: farther than this from every stop, a train is stalled after
+    # REST_S standing, else after PLATFORM_HOLD_S. None: Fleet's own (300 m).
+    stall_m: float | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property

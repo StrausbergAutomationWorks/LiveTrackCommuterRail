@@ -102,7 +102,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._params = key_params(op, dict(entry.data))
         self._show_parked = bool(opts.get(CONF_SHOW_PARKED, DEFAULT_SHOW_PARKED))
         self._session = async_get_clientsession(hass)
-        self.fleet = Fleet(styling=op.styling)
+        self.fleet = Fleet(styling=op.styling,
+                           **({} if op.stall_m is None else {"stall_m": op.stall_m}))
         self._static = StaticTimetable(hass, self._session, op)
         self._failures = 0
         self._last_good: dict[str, Any] | None = None

@@ -43,6 +43,8 @@ rest the arrow held there, no course_deg (D3c-iii). An UNPLANNED trip uses the n
 shape of its route when the route has one direction. No shape, or the fix more than 1 km
 from it: Fleet's own course between two fixes, as on NICTD.
 
+STALLED: after 366 s standing wherever the train stands (STALL_M below; Lee 2026-10-15).
+
 LATE (Queensland Rail's own rule; SSOT section 0, Lee 2026-10-15 14:26): on time within
 3:59, within 5:59 on the interurban services (Gold Coast, Rosewood, Sunshine Coast). So
 late_threshold_min 4, or 6 on a route with an end at Varsity Lakes (VL), Rosewood (RW),
@@ -88,6 +90,12 @@ LATE_INTERURBAN_MIN = 6
 
 MAX_FIX_AGE_S = 300
 OFF_RAIL_M = 1000.0
+# STALLED (Lee 2026-10-15: "One wait: 366 s anywhere"): Fleet's 90 s rule away from a stop
+# fires on MOVING trains here, held on one fixed point between two (Monday 2026-10-12,
+# bin\\ltcr_seq_stall.txt: 288 such spells on time and 11 late, feed IN_TRANSIT_TO, next
+# step p50 1.5 km) and on platform dwells placed over 300 m from the stop (344 and 14).
+# With no stop out of reach, every fix takes the platform rule, PLATFORM_HOLD_S (366 s).
+STALL_M = math.inf
 # The arrow: the shape's bearing over this far either side (Intercity Rail's
 # COURSE_SPAN_M), and no arrow from a shape the fix is farther than this from
 # (Intercity Rail's MAX_FIX_OFF_M).
@@ -356,6 +364,7 @@ QR_CITYTRAIN = Operator(
     max_fix_age_s=MAX_FIX_AGE_S,
     off_rail_m=OFF_RAIL_M,
     narn=False,
+    stall_m=STALL_M,
     attribution=(
         "Data: Translink, Queensland Government, CC BY 4.0. This integration is not "
         "sponsored by, affiliated with, or operated by Translink or Queensland Rail."
