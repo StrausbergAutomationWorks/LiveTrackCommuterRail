@@ -80,8 +80,10 @@ HSL_LINES = frozenset("ADEHIKLPRTUYZ")
 VR_ONLY_LINES = frozenset("GMOV")
 LETTERS = HSL_LINES | VR_ONLY_LINES
 # HSL's fare area: the stations HSL's GTFS puts in zones A-E, matched to Digitraffic
-# codes by position (every one within 179 m; bin\fi_hsl\hsl_zone_stations.json, built
-# by bin\fi_hsl_zones_build.py). Data: HSL, CC BY 4.0. Re-run when HSL's zones change.
+# codes by position (every one within 179 m, Tapanila the farthest;
+# bin\fi_hsl\hsl_zone_stations.json, built 2026-10-16 in a Claude session from HSL's
+# GTFS and Digitraffic's station list; no build script was kept). Data: HSL, CC BY 4.0.
+# Rebuild when HSL's zones change.
 HSL_STATIONS = frozenset((
     "AIN", "AVP", "EPO", "HAA", "HKH", "HKI", "HPL", "ILA", "JK", "JP",
     "JRS", "KAN", "KE", "KEA", "KIL", "KKN", "KLH", "KNI", "KRS", "KTÖ",
