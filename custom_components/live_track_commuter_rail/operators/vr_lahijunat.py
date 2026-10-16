@@ -352,7 +352,9 @@ VR_LAHIJUNAT = Operator(
     narn=False,
     attribution=(
         ATTRIBUTION + ". Fare zones: HSL, hsl.fi, CC BY 4.0 (HSL's timetable of "
-        "2026-10-16). This integration is not sponsored by, affiliated with, or "
+        "2026-10-16). Track geometry: Fintraffic / digitraffic.fi infra-api, CC BY 4.0, "
+        "modified (a subset, joined, split and simplified). This integration is not "
+        "sponsored by, affiliated with, or "
         "operated by Fintraffic, VR or HSL."
     ),
     terms_url=TERMS_URL,

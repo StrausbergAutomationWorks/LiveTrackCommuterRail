@@ -92,6 +92,30 @@ def apply_extras(result: dict[str, Any], extras: dict[str, dict[str, Any]] | Non
             rec.update(keys)
 
 
+def add_track_paths(result: dict[str, Any], path: Callable[..., Any] | None) -> int:
+    """`track_path` on every published record that moved since its last fix, in place;
+    how many. `path(start, end, seconds)` is tracknet.track_path bound to the railroad's
+    network; None (no network shipped): nothing.
+
+    The card slides a marker along it instead of in a straight line (06_MAP_CONTRACT.md
+    D3c-v). Finland (SSOT 8.3, backlog 290): the fixes sit on the infra-api tracks (p99
+    2 m) but 938 of 105,633 straight slides in the Helsinki box strayed over 100 m.
+    Absent (never empty) when there is no previous fix, or no way along the tracks."""
+    if path is None:
+        return 0
+    n = 0
+    for rec in (result.get("vehicles") or {}).values():
+        rec.pop("track_path", None)
+        if "previous_latitude" not in rec or "previous_longitude" not in rec:
+            continue
+        p = path((rec["previous_latitude"], rec["previous_longitude"]),
+                 (rec["latitude"], rec["longitude"]), rec.get("segment_duration_s"))
+        if p:
+            rec["track_path"] = p
+            n += 1
+    return n
+
+
 def decorate_all(result: dict[str, Any], observations: Iterable[Obs],
                  static: dict[str, Any] | None,
                  decorate: Callable[[dict[str, Any], Obs, dict[str, Any] | None], None] | None

@@ -95,6 +95,14 @@ equipment.
   (VR's rule, more than 3) and very late from 8. Positions under the Ring Rail
   airport tunnel freeze until the train comes out: a position 2 minutes old or
   more never marks a train as stalled, and one over 10 minutes old is refused.
+  Between two positions the map card slides a train along the tracks rather
+  than in a straight line (`track_path`): the track network ships with the
+  integration in `rail/vr_lahijunat_tracks.json.gz`, built with
+  `tools/build_tracks.py` from Fintraffic's infra-api tracks (Source:
+  Fintraffic / digitraffic.fi, CC BY 4.0; modified: only the tracks commuter
+  trains use, joined where they meet, split there and simplified). A move
+  with no way along the tracks, or one faster than 200 km/h, slides straight
+  as before.
   Off track is more than 1 km from every commuter line in Digitraffic's own
   timetable.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in

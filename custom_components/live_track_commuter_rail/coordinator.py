@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import timedelta
+from functools import partial
 from typing import Any
 
 import aiohttp
@@ -37,7 +38,7 @@ from .const import (
 )
 from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.gtfs import Fleet, decode
-from . import poll, rail
+from . import poll, rail, tracknet
 from .operators import Operator
 from .operators.base import SOURCE_DIGITRAFFIC
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
@@ -116,6 +117,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._rail_loaded = False
         self.rail_segments: int | None = None
         self._rail_check: rail.RailCheck | None = None
+        self.track_lines: int | None = None
+        self._track_path = None
         # Digitraffic (Finland): the ONE shared client per Home Assistant, with this
         # operator's consumer registered (saw-livetrack 0.2.7; release() gives it back).
         self._rail_client = None
@@ -204,6 +207,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if idx is not None:
                 self.rail_segments = len(idx)
             _LOGGER.debug("%s rail: %s segments", op.id, self.rail_segments)
+            # The railroad's track network, where one ships (Finland, SSOT 8.3): the
+            # card follows the tracks between fixes (D3c-v). Without one, nothing changes.
+            net = await self.hass.async_add_executor_job(tracknet.load, op.id)
+            if net is not None:
+                self.track_lines = len(net)
+                self._track_path = partial(tracknet.track_path, net)
+            _LOGGER.debug("%s tracks: %s lines", op.id, self.track_lines)
 
         # The timetable loads and refreshes in the background; until it has,
         # no next station is published and nothing else changes.
@@ -257,5 +267,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # The operator's own touches after Fleet (SE Queensland: look, label, lateness
         # and the arrow, from the timetable; poll.decorate_all).
         poll.decorate_all(result, observations, self._static.data, op.decorate)
+        # Along the tracks from the last fix (D3c-v), after everything that moves or
+        # replaces a position.
+        result["track_paths"] = poll.add_track_paths(result, self._track_path)
         self._last_good = result
         return result

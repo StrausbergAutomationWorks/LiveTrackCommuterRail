@@ -23,6 +23,8 @@ PASSTHROUGH = (
     "previous_longitude",
     "previous_observed_at",
     "segment_duration_s",
+    # D3c-v: the way along the tracks from the last fix (tracknet; Finland, SSOT 8.3).
+    "track_path",
     "course_deg",
     "icon_rotation_deg",
     "icon_rotation_basis",
