@@ -83,7 +83,7 @@ from typing import Any, Mapping
 
 from saw_livetrack.digitraffic_rail import ATTRIBUTION, BASE, DEFAULT_USER, parse_ts
 
-from ..tunnel import StopClock, Tunnel
+from ..tunnel import AFTER, StopClock, Tunnel
 from .base import SOURCE_DIGITRAFFIC, Obs, Operator
 
 HSL_PURPLE = "#8C4799"
@@ -225,9 +225,29 @@ def stop_clocks(train: Mapping[str, Any] | None, codes: tuple[str, ...]
             for code, times in found.items() if times.get("arr") and times.get("dep")}
 
 
+def after_stop(train: Mapping[str, Any] | None, code: str) -> StopClock | None:
+    """The first commercial stop after the train's last DEPARTURE row at `code`, as a
+    StopClock carrying its station code and arrival times; None without one."""
+    rows = _rows(train)
+    dep = max((i for i, r in enumerate(rows) if r.get("stationShortCode") == code
+               and r.get("type") == "DEPARTURE"), default=-1)
+    if dep < 0:
+        return None
+    for r in rows[dep + 1:]:
+        if not (r.get("commercialStop") and r.get("trainStopping") and not r.get("cancelled")):
+            continue
+        times = {}
+        for src, name in _CLOCK_FIELDS:
+            t = parse_ts(r.get(src))
+            times[f"arr_{name}"] = t.timestamp() if t is not None else None
+        return StopClock(code=r.get("stationShortCode"), **times)
+    return None
+
+
 def tunnel_clocks(records: list[Mapping[str, Any]]) -> dict[str, dict[str, StopClock]]:
     """{vehicle: {station code: StopClock}} for the trains in service on a tunnel's line
-    whose timetable has every one of its stops."""
+    whose timetable has every one of its stops; and under tunnel.AFTER, its first
+    commercial stop after the tunnel (its next stop once pushed past the second)."""
     out: dict[str, dict[str, StopClock]] = {}
     for rec in records or ():
         number = rec.get("number")
@@ -235,8 +255,11 @@ def tunnel_clocks(records: list[Mapping[str, Any]]) -> dict[str, dict[str, StopC
         codes = TUNNEL_STOPS.get(letter.upper() if isinstance(letter, str) else "")
         if not codes or not isinstance(number, str) or not number or state(rec) != "service":
             continue
-        clocks = stop_clocks(rec.get("train"), codes)
+        clocks: dict[str, StopClock] = stop_clocks(rec.get("train"), codes)
         if len(clocks) == len(codes):
+            after = after_stop(rec.get("train"), codes[-1])
+            if after is not None:
+                clocks[AFTER] = after
             out[identity(number, rec.get("departure_date"))] = clocks
     return out
 

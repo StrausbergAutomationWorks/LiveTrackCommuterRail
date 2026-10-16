@@ -282,7 +282,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._push is not None:
             # A train dark in a tunnel is pushed along it on its own stop times, after the
             # paths from the fixes: it replaces the position and the path (D3d, SSOT 8.3).
-            counts = self._push.apply(result, observations, op.tunnel_clocks(feed), now)
+            names = (self._static.data or {}).get("stops") or {}
+            counts = self._push.apply(result, observations, op.tunnel_clocks(feed), now,
+                                      names)
             result["estimated"] = counts[tunnel.ESTIMATED]
         self._last_good = result
         return result

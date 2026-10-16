@@ -124,6 +124,19 @@ class ScheduleTests(unittest.TestCase):
         t = self.times(c2={"arr_actual": T0 + 300})
         self.assertEqual(t[1:4], (T0 + 130, T0 + 300, T0 + 300))
 
+    def test_next_stop_by_the_drawn_position(self):
+        t = self.times()
+        after = tunnel.StopClock(code="S3", arr_actual=T0 + 470, arr_estimate=T0 + 500)
+        w = self.w
+        for s, want in ((2500, ("S1", T0 + 100)), (w.stop1 - 0.6, ("S1", T0 + 100)),
+                        (w.stop1 - 0.4, ("S1", T0 + 130)), (w.stop1 + 0.4, ("S1", T0 + 130)),
+                        (w.stop1 + 0.6, ("S2", T0 + 210)), (w.stop2, ("S2", T0 + 260)),
+                        (w.stop2 + 0.6, ("S3", T0 + 470)), (6200, ("S3", T0 + 470))):
+            self.assertEqual(self.w.next_stop(s, t, after), want, msg=s)
+        self.assertEqual(self.w.next_stop(5000, t, None), (None, None))
+        self.assertEqual(self.w.next_stop(5000, t, tunnel.StopClock(code="S3", arr_scheduled=T0 + 9)),
+                         ("S3", T0 + 9))
+
     def test_no_departure_time_no_schedule(self):
         c = tunnel.StopClock(arr_estimate=T0 + 100)
         self.assertIsNone(self.w.schedule(2000.0, T0, c, clocks()["S2"], None, None))
@@ -136,14 +149,58 @@ class PushTests(unittest.TestCase):
         self.way = self.push.ways["X"]
 
     def poll(self, x, now, clock=None, fix_t=T0, line="X", y=0.0, service=True, vid="v",
-             **extra):
+             names=None, **extra):
         rec = {"vehicle_id": vid, "latitude": ll(x, y)[0], "longitude": ll(x, y)[1],
                "in_service": service, "marker_label": line,
                "observed_at": iso(fix_t) if fix_t is not None else None, **extra}
         res = {"vehicles": {vid: rec}}
         obs = [SimpleNamespace(vehicle_id=vid, line=line)]
-        counts = self.push.apply(res, obs, {vid: clock if clock is not None else clocks()}, now)
+        counts = self.push.apply(res, obs, {vid: clock if clock is not None else clocks()}, now,
+                                 names)
         return rec, counts
+
+    NAMES = {"S1": "Stop One", "S2": "Stop Two", "S3": "Stop Three"}
+    AFTER_CLOCK = tunnel.StopClock(code="S3", arr_estimate=T0 + 500, arr_scheduled=T0 + 480)
+
+    def with_after(self, **kw):
+        c = clocks(**kw)
+        c[tunnel.AFTER] = self.AFTER_CLOCK
+        return c
+
+    def test_the_next_stop_from_where_it_is_drawn(self):
+        for now, name, eta in ((T0 + 50, "Stop One", T0 + 100), (T0 + 110, "Stop One", T0 + 130),
+                               (T0 + 170, "Stop Two", T0 + 210), (T0 + 230, "Stop Two", T0 + 260),
+                               (T0 + 310, "Stop Three", T0 + 500), (T0 + 600, "Stop Three", T0 + 500)):
+            self.push = tunnel.TunnelPush(net(), [TUN])
+            rec, _ = self.poll(2000, now, clock=self.with_after(), names=self.NAMES,
+                               next_stop="Fleet's", arrival_estimated_at="x")
+            self.assertEqual(rec["next_stop"], name, msg=now - T0)
+            self.assertEqual(rec["arrival_estimated_at"], iso(eta).replace("Z", "+00:00"),
+                             msg=now - T0)
+
+    def test_the_next_stop_where_never_backwards_holds_it(self):
+        self.poll(2000, T0 + 90, clock=self.with_after(), names=self.NAMES)
+        rec, _ = self.poll(2000, T0 + 120, clock=self.with_after(c1={"arr_estimate": T0 + 400}),
+                           names=self.NAMES)
+        self.assertAlmostEqual(along(self.way, rec), 2900, delta=1.0)
+        self.assertEqual(rec["next_stop"], "Stop One")
+        self.assertEqual(rec["arrival_estimated_at"], iso(T0 + 400).replace("Z", "+00:00"))
+
+    def test_the_next_stop_unnamed_or_untimed(self):
+        rec, _ = self.poll(2000, T0 + 50, names={}, next_stop="Fleet's", arrival_estimated_at="x")
+        self.assertEqual((rec["next_stop"], rec["arrival_estimated_at"]), ("Fleet's", "x"))
+        rec, _ = self.poll(2000, T0 + 600, names=self.NAMES, next_stop="Fleet's")
+        self.assertEqual(rec["next_stop"], "Fleet's")       # no stop after the tunnel known
+        c = clocks()
+        c[tunnel.AFTER] = tunnel.StopClock(code="S3")
+        rec, _ = self.poll(2000, T0 + 600, clock=c, names=self.NAMES, arrival_estimated_at="x")
+        self.assertEqual(rec["next_stop"], "Stop Three")
+        self.assertNotIn("arrival_estimated_at", rec)
+
+    def test_an_observed_train_keeps_the_timetables_next_stop(self):
+        rec, _ = self.poll(1500, T0, clock=self.with_after(), names=self.NAMES,
+                           next_stop="Fleet's")
+        self.assertEqual((rec["position_source"], rec["next_stop"]), ("observed", "Fleet's"))
 
     def test_an_estimate_carries_d3d(self):
         fix = ll(2000)
@@ -280,11 +337,27 @@ class OperatorTests(unittest.TestCase):
         half = self.rows()[:-2] + [self.rows()[-1]]          # AVP's departure row gone
         self.assertEqual(set(vr.stop_clocks({"timeTableRows": half}, ("LEN", "AVP"))), {"LEN"})
 
+    def test_after_stop(self):
+        rows = self.rows()
+        rows.insert(-1, {"stationShortCode": "PASS", "type": "ARRIVAL", "scheduledTime": iso(T0 + 300),
+                         "commercialStop": True, "trainStopping": False, "cancelled": False})
+        rows.insert(-1, {"stationShortCode": "GONE", "type": "ARRIVAL", "scheduledTime": iso(T0 + 400),
+                         "commercialStop": True, "trainStopping": True, "cancelled": True})
+        rows.insert(-1, {"stationShortCode": "KTO", "type": "ARRIVAL", "scheduledTime": iso(T0 + 500),
+                         "liveEstimateTime": iso(T0 + 520), "commercialStop": True,
+                         "trainStopping": True, "cancelled": False})
+        self.assertEqual(vr.after_stop({"timeTableRows": rows}, "AVP"),
+                         tunnel.StopClock(code="KTO", arr_estimate=T0 + 520, arr_scheduled=T0 + 500))
+        self.assertIsNone(vr.after_stop({"timeTableRows": rows}, "XYZ"))
+        self.assertIsNone(vr.after_stop({"timeTableRows": rows[:5]}, "AVP"))
+
     def test_tunnel_clocks(self):
         got = vr.tunnel_clocks([self.record(), self.record(line="P", number="8601"),
                                 self.record(line="R", number="9001"),
                                 self.record(number="8806", rows=self.rows(("LEN",)))])
         self.assertEqual(set(got), {"8804-12", "8601-12"})
+        self.assertEqual(got["8804-12"]["_after"], tunnel.StopClock(code="HKI", arr_scheduled=T0 + 3000))
+        self.assertEqual(set(got["8804-12"]), {"LEN", "AVP", "_after"})
         done = [dict(r, actualTime=iso(T0)) for r in self.rows()]
         self.assertEqual(vr.tunnel_clocks([self.record(rows=done)]), {})
 
@@ -320,13 +393,16 @@ class ShippedTunnelTests(unittest.TestCase):
         c1, c2 = (tunnel.StopClock(arr_estimate=a1, dep_estimate=d1),
                   tunnel.StopClock(arr_estimate=a2, dep_estimate=d2))
         codes = [code for code, _ in self.push.ways[line].tunnel.stops]
+        after = tunnel.StopClock(code="KT\u00d6" if line == "I" else "LN\u00c4", arr_estimate=d2 + 240)
+        names = {"LEN": "Lentoasema", "AVP": "Aviapolis", "KT\u00d6": "Kivist\u00f6",
+                 "LN\u00c4": "Leinel\u00e4"}
         push = tunnel.TunnelPush(self.net, vr.TUNNELS)
         out = []
         for now in (t + 15, t + 60, t + 200, t + 600):
             rec = {"vehicle_id": number, "latitude": dark[0], "longitude": dark[1],
                    "in_service": True, "observed_at": iso(t)}
             push.apply({"vehicles": {number: rec}}, [SimpleNamespace(vehicle_id=number, line=line)],
-                       {number: {codes[0]: c1, codes[1]: c2}}, now)
+                       {number: {codes[0]: c1, codes[1]: c2, tunnel.AFTER: after}}, now, names)
             out.append(rec)
         return push.ways[line], out
 
@@ -334,11 +410,15 @@ class ShippedTunnelTests(unittest.TestCase):
         way, recs = self.passage("I", "8804-12", 1791770558, (60.322706, 25.012347),
                                  (111, 44, 97, 20))
         self.check(way, recs)
+        self.assertEqual([r["next_stop"] for r in recs],
+                         ["Lentoasema", "Lentoasema", "Aviapolis", "Kivist\u00f6"])
 
     def test_line_p_8601(self):
         way, recs = self.passage("P", "8601-12", 1791769587, (60.309588, 24.896446),
                                  (130, 26, 97, 82))
         self.check(way, recs)
+        self.assertEqual([r["next_stop"] for r in recs],
+                         ["Aviapolis", "Aviapolis", "Lentoasema", "Leinel\u00e4"])
 
     def check(self, way, recs):
         s = [along(way, r) for r in recs]

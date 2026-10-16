@@ -36,7 +36,10 @@ on the way; `fix_latitude`/`fix_longitude` the frozen fix; `observed_at` unchang
 previous_*, segment_duration_s and position_jump dropped (they describe the fix); never
 `stalled` (its standing is not known); the way's bearing, as the course while moving and
 held at a stop and at the comeback; `track_path` along the way from the position
-published last (D3c-v). Never backwards. Every other train in service carries
+published last (D3c-v); the next stop from where it is DRAWN (next_stop and
+arrival_estimated_at: the stop ahead at its arrival, the stop it stands at at its
+departure, past the second stop the first one after the tunnel; Lee 2026-10-16 12:42).
+Never backwards. Every other train in service carries
 `position_source: "observed"`, and the first fix after an estimate gets its `track_path`
 from the estimate it replaces.
 """
@@ -45,7 +48,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
 from . import tracknet
@@ -70,12 +73,19 @@ MAX_KMH = 120.0
 COURSE_SPAN_M = 50.0
 # The way between its two stations is searched up to this far.
 MAX_WAY_M = 30000.0
+# A train's clocks carry, under this key, its first commercial stop after the tunnel:
+# its next stop once the push has taken it past the second.
+AFTER = "_after"
+# Drawn this close to a stop's mark, the train stands at it.
+AT_STOP_M = 0.5
 
 
 @dataclass(frozen=True)
 class StopClock:
-    """One tunnel stop's times from the train's timetable, as POSIX seconds."""
+    """One tunnel stop's times from the train's timetable, as POSIX seconds. Under the
+    key AFTER: the first commercial stop after the tunnel, with its station `code`."""
 
+    code: str | None = None
     arr_actual: float | None = None
     arr_estimate: float | None = None
     arr_scheduled: float | None = None
@@ -232,6 +242,26 @@ class Way:
             return self.stop2 + (self.back - self.stop2) * (now - d2) / (b - d2), True
         return self.back, False
 
+    def next_stop(self, s: float, times: tuple[float, float, float, float, float],
+                  after: StopClock | None) -> tuple[str | None, float | None]:
+        """(station code, time) of the next stop of a train DRAWN s along: the stop ahead
+        with its arrival, the stop it stands at with its departure (as the timetable
+        shows a train standing at a station), and past the second stop the first one
+        after the tunnel at its own time (code None when not known)."""
+        a1, d1, a2, d2, _ = times
+        (code1, _), (code2, _) = self.tunnel.stops
+        if s < self.stop1 - AT_STOP_M:
+            return code1, a1
+        if s <= self.stop1 + AT_STOP_M:
+            return code1, d1
+        if s < self.stop2 - AT_STOP_M:
+            return code2, a2
+        if s <= self.stop2 + AT_STOP_M:
+            return code2, d2
+        if after is None:
+            return None, None
+        return after.code, _first(after.arr_actual, after.arr_estimate, after.arr_scheduled)
+
 
 class TunnelPush:
     """Per config entry: pushes the trains in its tunnels, and remembers what it last
@@ -251,9 +281,10 @@ class TunnelPush:
 
     def apply(self, result: dict[str, Any], observations: Iterable[Any],
               clocks: Mapping[str, Mapping[str, StopClock]] | None,
-              now: float) -> dict[str, int]:
+              now: float, names: Mapping[str, str] | None = None) -> dict[str, int]:
         """Push the published trains that are in a tunnel, in place; {"estimated": n,
-        "observed": n} over the trains in service."""
+        "observed": n} over the trains in service. names: {station code: name}, the
+        static timetable's, for an estimated train's next stop (D4b: never a code)."""
         counts = {ESTIMATED: 0, OBSERVED: 0}
         vehicles = result.get("vehicles") or {}
         by_vid = {o.vehicle_id: o for o in observations}
@@ -269,8 +300,8 @@ class TunnelPush:
             obs = by_vid.get(vid)
             line = (getattr(obs, "line", None) or "").upper() if obs is not None else ""
             way = self.ways.get(line)
-            est = (self._estimate(vid, rec, way, clocks.get(vid) or {}, now)
-                   if way is not None else None)
+            clock = clocks.get(vid) or {}
+            est = self._estimate(vid, rec, way, clock, now) if way is not None else None
             if est is None:
                 rec["position_source"] = OBSERVED
                 counts[OBSERVED] += 1
@@ -278,7 +309,9 @@ class TunnelPush:
                     # The fix that takes over: along the tracks from the estimate.
                     self._path_from_pub(rec, vid)
                 continue
-            self._write(vid, rec, way, *est)
+            s, moving, times = est
+            self._write(vid, rec, way, s, moving)
+            self._next_stop(rec, way, s, times, clock.get(AFTER), names or {})
             counts[ESTIMATED] += 1
         self._pub = {vid: (rec["latitude"], rec["longitude"]) for vid, rec in vehicles.items()}
         for vid in set(self._s) - set(vehicles):
@@ -287,7 +320,8 @@ class TunnelPush:
         return counts
 
     def _estimate(self, vid: str, rec: dict[str, Any], way: Way,
-                  clock: Mapping[str, StopClock], now: float) -> tuple[float, bool] | None:
+                  clock: Mapping[str, StopClock], now: float
+                  ) -> tuple[float, bool, tuple[float, float, float, float, float]] | None:
         (code1, _), (code2, _) = way.tunnel.stops
         c1, c2 = clock.get(code1), clock.get(code2)
         if c1 is None or c2 is None:
@@ -305,8 +339,27 @@ class TunnelPush:
         s, moving = way.position(s0, t0, times, now)
         last = self._s.get(vid)
         if last is not None and s < last:
-            return last, False        # never backwards: held where it was drawn
-        return s, moving
+            return last, False, times  # never backwards: held where it was drawn
+        return s, moving, times
+
+    @staticmethod
+    def _next_stop(rec: dict[str, Any], way: Way, s: float,
+                   times: tuple[float, float, float, float, float],
+                   after: StopClock | None, names: Mapping[str, str]) -> None:
+        """The next stop from where the push DRAWS the train, not the timetable's: a
+        stop's departure row counts as ahead until its actual is in, p50 57 s late, so
+        the timetable kept a pushed train a stop behind (8660, live 2026-10-16: "Next:
+        Aviapolis" standing at Lentoasema). Unnamed: Fleet's is left as it was."""
+        code, eta = way.next_stop(s, times, after)
+        name = names.get(code) if isinstance(code, str) else None
+        if not name:
+            return
+        rec["next_stop"] = name
+        if eta is not None:
+            rec["arrival_estimated_at"] = datetime.fromtimestamp(
+                round(eta), tz=timezone.utc).isoformat()
+        else:
+            rec.pop("arrival_estimated_at", None)
 
     def _write(self, vid: str, rec: dict[str, Any], way: Way, s: float,
                moving: bool) -> None:
