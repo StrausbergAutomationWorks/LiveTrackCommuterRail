@@ -81,8 +81,11 @@ equipment.
   shared with the other Live Track rail integrations (`saw-livetrack`), so
   installing more of them costs Digitraffic no extra requests. A train is a run:
   `<train number>-<day of its departure date>`. The marker carries the line
-  letter, in HSL purple on the HSL lines (A, E, I, K, L, P, U, Y) and VR green on
-  VR's own (D, G, H, M, O, R, T, V, Z). A train is shown from its first station
+  letter, coloured by where the train is, as HSL's own maps and station signs
+  colour the lines: HSL purple while its next stop is in HSL's fare area (zones
+  A to E, from HSL's open data, CC BY 4.0), VR green outside it. An R train is
+  purple to Jokela and green on to Riihimäki; G, M and O, which are not HSL
+  lines, are always green. A train is shown from its first station
   until its last commercial stop, then removed. Line V runs that carry no one
   are shown as `NIS <number>` while they move. A train is late from 4 minutes
   (VR's rule, more than 3) and very late from 8. Positions under the Ring Rail

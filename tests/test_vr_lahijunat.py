@@ -175,13 +175,14 @@ class StopsTests(unittest.TestCase):
         self.assertEqual(name, "Lentoasema")
         self.assertEqual(eta, (T0 + timedelta(minutes=25)).timestamp())
         self.assertEqual(delays["9123-15"], 180)
-        self.assertEqual(extras["9123-15"], {"line_name": "Helsinki - Lentoasema"})
+        self.assertEqual(extras["9123-15"]["line_name"], "Helsinki - Lentoasema")
+        self.assertEqual(extras["9123-15"]["marker_color"], "#8C4799")
 
     def test_a_station_without_a_name_is_never_shown_as_a_code(self):
         nxt, delays, extras = vr.stops([record(rows=RUNNING)], {"stops": {}}, 0.0)
         self.assertEqual(nxt, {})
         self.assertEqual(delays["9123-15"], 180)
-        self.assertEqual(extras, {})
+        self.assertNotIn("line_name", extras["9123-15"])
         nxt, _, _ = vr.stops([record(rows=RUNNING)], None, 0.0)
         self.assertEqual(nxt, {})
 
@@ -197,20 +198,61 @@ class StopsTests(unittest.TestCase):
         self.assertNotIn("9123-15", delays)
 
 
+class PlaceTests(unittest.TestCase):
+
+    def test_colour_follows_the_next_stop(self):
+        # R northbound: purple to Jokela, green once Hyvinkaa is next.
+        inside = [row("HKI", "DEPARTURE", -40, actual=True), row("JK", "ARRIVAL", 5)]
+        outside = [row("JK", "DEPARTURE", -5, actual=True), row("HY", "ARRIVAL", 5)]
+        _, _, ex = vr.stops([record(line="R", rows=inside)], NAMES, 0.0)
+        self.assertEqual((ex["9123-15"]["marker_color"], ex["9123-15"]["marker_arrow_color"]),
+                         ("#8C4799",) * 2)
+        _, _, ex = vr.stops([record(line="R", rows=outside)], NAMES, 0.0)
+        self.assertEqual(ex["9123-15"]["marker_color"], "#00B451")
+
+    def test_at_the_origin_before_departure(self):
+        _, _, ex = vr.stops([record(line="R", rows=[row("RI", "DEPARTURE", 5),
+                                                    row("HKI", "ARRIVAL", 60)])], NAMES, 0.0)
+        self.assertEqual(ex["9123-15"]["marker_color"], "#00B451")
+        _, _, ex = vr.stops([record(rows=BEFORE)], NAMES, 0.0)
+        self.assertEqual(ex["9123-15"]["marker_color"], "#8C4799")
+
+    def test_area_colour_falls_back_to_the_last_station_made(self):
+        rows = [row("HKI", "DEPARTURE", -40, actual=True), row("HY", "ARRIVAL", -5, actual=True)]
+        self.assertEqual(vr.area_colour(record(rows=rows)["train"], None), "#00B451")
+        self.assertEqual(vr.area_colour(record(rows=rows[:1])["train"], None), "#8C4799")
+        self.assertIsNone(vr.area_colour(record(rows=[row("HKI", "DEPARTURE", 5)])["train"], None))
+        self.assertIsNone(vr.area_colour(None, ""))
+        self.assertEqual(vr.area_colour(None, "KE"), "#8C4799")
+        self.assertEqual(vr.area_colour(None, "MLÄ"), "#00B451")
+
+    def test_a_trailing_comma_in_a_code_is_ignored(self):
+        # Digitraffic's metadata carries one code as "NLA," (35_Dependencies digitraffic SSOT 3).
+        self.assertEqual(vr.area_colour(None, "KE,"), "#8C4799")
+
+
 class LookTests(unittest.TestCase):
 
     def obs(self, line, in_service=True, vid="9123-15"):
         return base.Obs(vid, 60.2, 24.9, None, in_service,
                         train="9123" if in_service else None, line=line)
 
-    def test_hsl_letters_purple_vr_letters_green(self):
-        for letter in "AEIKLPUY":
+    def test_by_line_hsl_lines_purple_vr_only_green(self):
+        # The fallback, when no station is known (stops() sets the place).
+        for letter in "ADEHIKLPRTUYZ":
             s = vr.styling(self.obs(letter))
             self.assertEqual((s["marker_color"], s["marker_arrow_color"]), ("#8C4799",) * 2, letter)
-        for letter in "DGHMORTVZ":
+        for letter in "GMOV":
             s = vr.styling(self.obs(letter))
             self.assertEqual((s["marker_color"], s["marker_arrow_color"]), ("#00B451",) * 2, letter)
-        self.assertEqual(vr.HSL_LETTERS & vr.VR_LETTERS, frozenset())
+        self.assertEqual(vr.HSL_LINES & vr.VR_ONLY_LINES, frozenset())
+
+    def test_hsl_stations_are_the_fifty_zoned_ones(self):
+        self.assertEqual(len(vr.HSL_STATIONS), 50)
+        for code in ("HKI", "PSL", "TKL", "KE", "JP", "JK", "HAA", "STI", "KKN", "LEN", "KÄP"):
+            self.assertIn(code, vr.HSL_STATIONS)
+        for code in ("HY", "RI", "LH", "MLÄ", "HNN", "TPE", "KV", "HNK", "KR"):
+            self.assertNotIn(code, vr.HSL_STATIONS)
 
     def test_ring_label_and_arrow_outline(self):
         s = vr.styling(self.obs("P"))

@@ -81,8 +81,9 @@ def unstall_stale(result: dict[str, Any], observations: Iterable[Obs], now: floa
 
 
 def apply_extras(result: dict[str, Any], extras: dict[str, dict[str, Any]] | None) -> None:
-    """Add the adapter's keys for a vehicle to its published record, in place (a
-    Digitraffic operator's line name, which no GTFS route_id carries here)."""
+    """Add the adapter's keys for a vehicle to its published record, in place, over
+    what the Fleet set (a Digitraffic operator's line name, which no GTFS route_id
+    carries here, and vr_lahijunat's colour by place). In-service records only."""
     if not extras:
         return
     for vid, rec in (result.get("vehicles") or {}).items():

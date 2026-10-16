@@ -32,13 +32,18 @@ STALE FIXES (8.1): kept up to 10 minutes (MAX_FIX_AGE_S, poll.fresh_only), and a
 poll.unstall_stale): lines P and I freeze at the ends of the Ring Rail airport tunnel
 while the train is underground, and a late one must not pulse there.
 
-THE LOOK (8.1): the line letter on a disc. HSL purple #8C4799 (Digitransit's HSL rail
-colour) on the letters with HSL routes, A E I K L P U Y; VR green #00B451 (VR's own
-token for Pantone 7481, as Intercity Rail's VR) on the VR-only letters, D G H M O R T
-Z, and on V while a line V run is in service. White letter, no outline (VR's long-distance rule: "They don't outline the numbers
-in black"); a white ring 2 px, so the commuter disc is not Intercity's dark-ringed
-one; the arrow the fill outlined white. Not in service: grey #808080, same ring and
-arrow. A letter in neither list: no fill (D4a rule 3), the number as the label.
+THE LOOK (Lee 2026-10-16 00:10; research note 20_Research/FI_HSL_VR_MODES_20261016.md):
+the line letter on a disc, coloured by PLACE, as HSL's own commuter map and station
+posters draw it: HSL purple #8C4799 (HSL's screen colour for commuter trains) while the
+train's next commercial stop is in HSL's fare area, else the last station it made; VR
+green #00B451 (VR's token for Pantone 7481, as Intercity Rail's VR) outside it, "VR
+maksualue". So R, D, T, Z and H turn green beyond Jokela, Haarajoki and Siuntio, and G, M
+and O (not HSL lines) are always green. HSL's area is the 50 stations its own GTFS puts
+in zones A-E (HSL_STATIONS). With neither station known: by line, HSL's 13 lines purple.
+White letter, no outline; a white ring 2 px; the arrow the fill outlined white. Not in
+service: grey #808080, same ring and arrow. An unknown letter: the number as the label.
+It read (2dded1f to 87da98a): purple on the letters with HSL routes, green on the others,
+which drew R, D, T, Z and H green inside Helsinki, where every sign is purple.
 
 LATE (SSOT 0, 8.1): VR's commuter rule, late at more than 3 minutes at the departure
 station or destination; differenceInMinutes is the delay rounded to the minute, so
@@ -69,11 +74,21 @@ VR_GREEN = "#00B451"
 GREY = "#808080"
 WHITE = "#FFFFFF"
 RING_WIDTH = 2
-# GTFS agency per route_type 109 route, 2026-10-14 (bin\fi_line_agency.txt): these
-# letters have HSL routes (and VR routes too: the agency is mixed within a letter).
-HSL_LETTERS = frozenset("AEIKLPUY")
-# V: line V in service (an HV run with commercial stops between its ends, 8.1); VR's.
-VR_LETTERS = frozenset("DGHMORTVZ")
+# HSL's 13 commuter lines (route_type 109 in HSL's own GTFS, feed_version 2026-10-16
+# 04:35:27); G, M, O and V are VR's alone. The fallback colour, and the letters shown.
+HSL_LINES = frozenset("ADEHIKLPRTUYZ")
+VR_ONLY_LINES = frozenset("GMOV")
+LETTERS = HSL_LINES | VR_ONLY_LINES
+# HSL's fare area: the stations HSL's GTFS puts in zones A-E, matched to Digitraffic
+# codes by position (every one within 179 m; bin\fi_hsl\hsl_zone_stations.json, built
+# by bin\fi_hsl_zones_build.py). Data: HSL, CC BY 4.0. Re-run when HSL's zones change.
+HSL_STATIONS = frozenset((
+    "AIN", "AVP", "EPO", "HAA", "HKH", "HKI", "HPL", "ILA", "JK", "JP",
+    "JRS", "KAN", "KE", "KEA", "KIL", "KKN", "KLH", "KNI", "KRS", "KTÖ",
+    "KVH", "KVY", "KÄP", "LEN", "LNÄ", "LOH", "LPV", "MAS", "ML", "MLO",
+    "MRL", "MYR", "MÄK", "OLK", "PJM", "PLA", "PMK", "POH", "PSL", "RKL",
+    "SAU", "SAV", "STI", "TKL", "TNA", "TOL", "TRL", "VEH", "VKS", "VMO",
+))
 POSITIONING = "HV"
 
 LATE_MIN = 4
@@ -204,6 +219,11 @@ def stops(records: list[Mapping[str, Any]], static: dict[str, Any] | None,
         vid = identity(number, rec.get("departure_date"))
         train = rec["train"]
         nxt = next_commercial(train)
+        keys: dict[str, Any] = {}
+        fill = area_colour(train, nxt[0] if nxt is not None else None)
+        if fill is not None:
+            keys["marker_color"] = fill
+            keys["marker_arrow_color"] = fill
         if nxt is not None:
             code, eta, delay = nxt
             name = names.get(code) if isinstance(code, str) else None
@@ -215,15 +235,31 @@ def stops(records: list[Mapping[str, Any]], static: dict[str, Any] | None,
         first = names.get(rows[0].get("stationShortCode")) if rows else None
         last = names.get(rows[-1].get("stationShortCode")) if rows else None
         if first and last:
-            extras[vid] = {"line_name": f"{first} - {last}"}
+            keys["line_name"] = f"{first} - {last}"
+        if keys:
+            extras[vid] = keys
     return nxt_out, delays, extras
 
 
+def area_colour(train: Mapping[str, Any] | None, next_code: str | None) -> str | None:
+    """HSL purple if the train's next commercial stop is in HSL's fare area, VR green if
+    not; with no next stop, by the last station it made; None with neither."""
+    code = next_code
+    if not code:
+        rows = _rows(train)
+        last = _last_actual(rows)
+        code = rows[last].get("stationShortCode") if last >= 0 else None
+    if not isinstance(code, str) or not code:
+        return None
+    return HSL_PURPLE if code.rstrip(",") in HSL_STATIONS else VR_GREEN
+
+
 def styling(obs: Obs) -> dict[str, Any]:
-    """The disc's colours: by letter in service, grey out of service."""
+    """The disc's colours: by line in service (HSL's lines purple), grey out of service.
+    The PLACE overrides the line where a station is known (stops, area_colour)."""
     if obs.in_service:
         letter = (obs.line or "").upper()
-        fill = HSL_PURPLE if letter in HSL_LETTERS else VR_GREEN if letter in VR_LETTERS else None
+        fill = HSL_PURPLE if letter in HSL_LINES else VR_GREEN if letter in VR_ONLY_LINES else None
     else:
         fill = GREY
     keys: dict[str, Any] = {
@@ -243,7 +279,7 @@ def decorate(rec: dict[str, Any], obs: Obs, static: dict[str, Any] | None) -> No
     """The label and lateness rule, in place."""
     if obs.in_service:
         letter = (obs.line or "").upper()
-        if letter in HSL_LETTERS or letter in VR_LETTERS:
+        if letter in LETTERS:
             rec["marker_label"] = letter
         rec["late_threshold_min"] = LATE_MIN
         rec["very_late_threshold_min"] = VERY_LATE_MIN
