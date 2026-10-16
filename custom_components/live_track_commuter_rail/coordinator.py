@@ -35,9 +35,12 @@ from .const import (
     REQUEST_TIMEOUT,
     USER_AGENT,
 )
+from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.gtfs import Fleet, decode
 from . import poll, rail
 from .operators import Operator
+from .operators.base import SOURCE_DIGITRAFFIC
+from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
 from .schedule import timetable_stale
@@ -113,6 +116,30 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._rail_loaded = False
         self.rail_segments: int | None = None
         self._rail_check: rail.RailCheck | None = None
+        # Digitraffic (Finland): the ONE shared client per Home Assistant, with this
+        # operator's consumer registered (saw-livetrack 0.2.7; release() gives it back).
+        self._rail_client = None
+        if op.source == SOURCE_DIGITRAFFIC:
+            self._rail_client = get_shared_rail_client(hass, op.digitraffic_consumer)
+
+    def release(self) -> None:
+        """Give back this entry's claim on the shared Digitraffic client. On the event
+        loop; safe to call twice."""
+        if self._rail_client is not None:
+            self._rail_client = None
+            release_shared_rail_client(self.hass, self.operator.digitraffic_consumer)
+
+    async def _fetch_digitraffic(self) -> list[dict[str, Any]] | None:
+        """This operator's records from the shared client (blocking: the executor), or
+        None on a failed fetch. The client's exceptions carry no secret (keyless), but
+        only their TYPE is logged, as for every feed here."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(
+                self._rail_client.for_consumer, op.digitraffic_consumer)
+        except DigitrafficError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
 
     @property
     def timetable(self) -> dict[str, Any] | None:
@@ -142,10 +169,14 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         op = self.operator
-        try:
-            feed = await fetch_feed(self._session, op.positions_url, self._params)
-        except AuthError as err:
-            raise ConfigEntryAuthFailed(f"{op.name} refused the key") from err
+        if op.source == SOURCE_DIGITRAFFIC:
+            # The client's records stand in for a feed: parse(records) reads them.
+            feed = await self._fetch_digitraffic()
+        else:
+            try:
+                feed = await fetch_feed(self._session, op.positions_url, self._params)
+            except AuthError as err:
+                raise ConfigEntryAuthFailed(f"{op.name} refused the key") from err
 
         if feed is None:
             self._failures += 1
@@ -202,9 +233,14 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._check_timetable(*trip_coverage(tu, self._static.data))
                     next_stops = next_stops_from(tu, self._static.data, now)
 
+        extras = None
+        if op.parse_stops is not None:
+            # Digitraffic: next stops and delays from each train's own timetable.
+            next_stops, trip_delays, extras = op.parse_stops(feed, self._static.data, now)
+
         if self._rail_check is not None:
             self._rail_check.set_shapes(self._static.data)
-        if feed.header.HasField("timestamp"):
+        if op.source != SOURCE_DIGITRAFFIC and feed.header.HasField("timestamp"):
             self.feed_timestamp = int(feed.header.timestamp)
         # A fix older than the operator's limit is refused before Fleet sees it
         # (poll.fresh_only; SE Queensland's frozen fixes, SSOT 9.1).
@@ -214,6 +250,10 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             show_parked=self._show_parked, delays=delays, next_stops=next_stops,
             static=self._static.data, trip_delays=trip_delays)
         result["stale"] = stale
+        # A fix this old never counts as standing (Finland's tunnel; SSOT 8.1).
+        result["unstalled"] = poll.unstall_stale(result, observations, now,
+                                                 op.stand_max_fix_age_s)
+        poll.apply_extras(result, extras)
         # The operator's own touches after Fleet (SE Queensland: look, label, lateness
         # and the arrow, from the timetable; poll.decorate_all).
         poll.decorate_all(result, observations, self._static.data, op.decorate)

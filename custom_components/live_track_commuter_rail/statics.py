@@ -143,7 +143,7 @@ class StaticTimetable:
         self._next_try = now + RETRY_S
         try:
             async with self._session.get(
-                op.static_url, headers={"User-Agent": USER_AGENT},
+                op.static_url, headers={"User-Agent": USER_AGENT, **(op.static_headers or {})},
                 timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT),
             ) as resp:
                 if resp.status != 200:

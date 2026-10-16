@@ -56,6 +56,41 @@ def drop_skipped(feed) -> int:
     return n
 
 
+def unstall_stale(result: dict[str, Any], observations: Iterable[Obs], now: float,
+                  max_age_s: float | None) -> int:
+    """Drop `stalled` from every published record whose fix is at least max_age_s old
+    at `now`, in place; how many. None: nothing.
+
+    Finland (SSOT 8.1, Lee 2026-10-15: a fix 2 minutes old or more never counts as
+    standing). MEASURED (bin\\fi_commuter_stale.txt, fi_commuter_stale2.txt): in service,
+    fix age p50 4 s, p99 332 s; the stale fixes are lines P and I frozen at the two ends
+    of the Ring Rail airport tunnel while the train is underground. A frozen fix does not
+    move, so Fleet counts the train as standing, and a late one would pulse.
+    """
+    if max_age_s is None:
+        return 0
+    by_vid = {o.vehicle_id: o for o in observations}
+    n = 0
+    for vid, rec in (result.get("vehicles") or {}).items():
+        obs = by_vid.get(vid)
+        if (rec.get("stalled") and obs is not None and obs.observed_at is not None
+                and now - obs.observed_at.timestamp() >= max_age_s):
+            del rec["stalled"]
+            n += 1
+    return n
+
+
+def apply_extras(result: dict[str, Any], extras: dict[str, dict[str, Any]] | None) -> None:
+    """Add the adapter's keys for a vehicle to its published record, in place (a
+    Digitraffic operator's line name, which no GTFS route_id carries here)."""
+    if not extras:
+        return
+    for vid, rec in (result.get("vehicles") or {}).items():
+        keys = extras.get(vid)
+        if keys and rec.get("in_service"):
+            rec.update(keys)
+
+
 def decorate_all(result: dict[str, Any], observations: Iterable[Obs],
                  static: dict[str, Any] | None,
                  decorate: Callable[[dict[str, Any], Obs, dict[str, Any] | None], None] | None

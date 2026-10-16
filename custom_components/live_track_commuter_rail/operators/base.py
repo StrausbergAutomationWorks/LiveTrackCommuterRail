@@ -19,6 +19,13 @@ from saw_livetrack.gtfs.realtime import Obs, position_of, vehicle_time  # noqa: 
 
 from ..const import OFF_RAIL_M
 
+# Where an operator's positions come from. GTFS-Realtime: positions_url is a feed,
+# parse(feed) reads it. Digitraffic: the shared Fintraffic client
+# (saw_livetrack.digitraffic_rail, one poller per Home Assistant), parse(records)
+# reads this integration's records and parse_stops their timetables.
+SOURCE_GTFS_RT = "gtfs_rt"
+SOURCE_DIGITRAFFIC = "digitraffic"
+
 
 @dataclass(frozen=True)
 class Operator:
@@ -69,6 +76,22 @@ class Operator:
     # Fleet's stall_m: farther than this from every stop, a train is stalled after
     # REST_S standing, else after PLATFORM_HOLD_S. None: Fleet's own (300 m).
     stall_m: float | None = None
+    # SOURCE_GTFS_RT or SOURCE_DIGITRAFFIC (above).
+    source: str = SOURCE_GTFS_RT
+    # Digitraffic: the consumer this operator registers with the shared client
+    # ("commuter"; saw_livetrack.digitraffic_rail.CONSUMERS).
+    digitraffic_consumer: str | None = None
+    # Digitraffic: (records, the distilled timetable or None, now) -> (next_stops
+    # {trip: (name, eta)}, trip_delays {trip: seconds}, extras {vehicle: keys added
+    # to its published record, poll.apply_extras}).
+    parse_stops: Callable[[Any, dict[str, Any] | None, float],
+                          tuple[dict, dict, dict]] | None = None
+    # Headers for the timetable download besides the User-Agent (Digitraffic asks
+    # callers to identify themselves). None: none.
+    static_headers: dict[str, str] | None = None
+    # A fix at least this old at the poll never counts as standing: `stalled` is
+    # dropped (poll.unstall_stale; Finland's Ring Rail tunnel, SSOT 8.1). None: off.
+    stand_max_fix_age_s: float | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -83,4 +106,5 @@ REGIONS: dict[str, str] = {
     "US-IN": "United States — Indiana",
     "US-WI": "United States — Wisconsin",
     "AU-QLD": "Australia — Queensland",
+    "FI": "Finland",
 }

@@ -199,12 +199,12 @@ class RegistryTests(unittest.TestCase):
 
     def test_operator_ids_are_the_released_ones(self):
         # ! An id is a config entry unique_id and part of entity names.
-        self.assertEqual(set(ops.OPERATORS), {"metra", "nictd", "qr_citytrain"})
+        self.assertEqual(set(ops.OPERATORS), {"metra", "nictd", "qr_citytrain", "vr_lahijunat"})
 
     def test_every_region_has_a_label_and_the_list_is_sorted(self):
         regions = ops.regions_in_use()
         self.assertEqual(list(regions.values()), sorted(regions.values()))
-        self.assertEqual(set(regions), {"US-IL", "US-IN", "US-WI", "AU-QLD"})
+        self.assertEqual(set(regions), {"US-IL", "US-IN", "US-WI", "AU-QLD", "FI"})
 
     def test_operators_in_region(self):
         self.assertEqual([o.id for o in ops.operators_in("US-IL")], ["metra", "nictd"])

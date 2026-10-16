@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 
 from homeassistant.config_entries import (
@@ -51,9 +52,12 @@ from .const import (
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    REQUEST_TIMEOUT,
+    USER_AGENT,
 )
 from .coordinator import AuthError, fetch_feed
 from .operators import OPERATORS, Operator, operators_in, regions_in_use
+from .operators.base import SOURCE_DIGITRAFFIC
 
 _KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
@@ -63,8 +67,25 @@ def _dropdown(options: list[SelectOptionDict]) -> SelectSelector:
         options=options, mode=SelectSelectorMode.DROPDOWN, sort=False))
 
 
+async def _check_digitraffic(hass, op: Operator) -> str | None:
+    """One GET of the positions the shared client reads (keyless): None on HTTP
+    200, else an error code. Digitraffic refuses a request without gzip (406) and
+    asks callers to identify themselves (the client's DEFAULT_USER)."""
+    headers = {"User-Agent": USER_AGENT, "Accept-Encoding": "gzip",
+               **(op.static_headers or {})}
+    try:
+        async with async_get_clientsession(hass).get(
+            op.positions_url, headers=headers,
+            timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)) as resp:
+            return None if resp.status == 200 else "cannot_connect"
+    except (aiohttp.ClientError, TimeoutError):
+        return "cannot_connect"
+
+
 async def _check_key(hass, op: Operator, key: str) -> str | None:
     """None when the operator accepts the key, else an error code."""
+    if op.source == SOURCE_DIGITRAFFIC:
+        return await _check_digitraffic(hass, op)
     params = {op.key_param: key} if op.needs_key else None
     try:
         feed = await fetch_feed(async_get_clientsession(hass), op.positions_url, params)

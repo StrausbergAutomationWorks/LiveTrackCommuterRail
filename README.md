@@ -2,7 +2,7 @@
 
 Live commuter trains on your Home Assistant map. Pick the railroad you want to
 watch; every train it reports appears as a `geo_location` entity and moves as
-the railroad's GTFS-Realtime feed updates. Add more railroads one at a time.
+the railroad's live feed updates. Add more railroads one at a time.
 
 This integration is not sponsored by, affiliated with, or operated by any of
 the railroads it reads. It is original work, MIT-licensed.
@@ -14,6 +14,7 @@ the railroads it reads. It is original work, MIT-licensed.
 | Metra | Chicago area (Illinois, Wisconsin) | Yes, your own: request one at [metra.com/developers](https://metra.com/developers) | [Metra's GTFS-Realtime licence](https://metra.com/gtfs-realtime-api-key-request-license-agreement) |
 | South Shore Line (NICTD) | Chicago to South Bend (Illinois, Indiana) | No | Public feed published for NICTD by ETA SPOT |
 | Queensland Rail Citytrain | SE Queensland (Australia) | No | [Translink open data](https://translink.com.au/about-translink/open-data); data CC BY 4.0, credit Translink |
+| VR lähijunat (VR and HSL commuter trains) | Finland | No | [Fintraffic Digitraffic](https://www.digitraffic.fi/en/railway-traffic/); data CC BY 4.0, credit Fintraffic / digitraffic.fi |
 
 Read each railroad's terms before you use its data; they bind you, as the
 person receiving it.
@@ -76,6 +77,19 @@ equipment.
   minutes, 6 on the Gold Coast, Rosewood and Sunshine Coast lines, Queensland
   Rail's own rule (`late_threshold_min`). Translink's timetable covers every
   mode; only its trains are kept.
+* **Finland** comes from Fintraffic's Digitraffic rail service through one poller
+  shared with the other Live Track rail integrations (`saw-livetrack`), so
+  installing more of them costs Digitraffic no extra requests. A train is a run:
+  `<train number>-<day of its departure date>`. The marker carries the line
+  letter, in HSL purple on the HSL lines (A, E, I, K, L, P, U, Y) and VR green on
+  VR's own (D, G, H, M, O, R, T, V, Z). A train is shown from its first station
+  until its last commercial stop, then removed. Line V runs that carry no one
+  are shown as `NIS <number>` while they move. A train is late from 4 minutes
+  (VR's rule, more than 3) and very late from 8. Positions under the Ring Rail
+  airport tunnel freeze until the train comes out: a position 2 minutes old or
+  more never marks a train as stalled, and one over 10 minutes old is refused.
+  Off track is more than 1 km from every commuter line in Digitraffic's own
+  timetable.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

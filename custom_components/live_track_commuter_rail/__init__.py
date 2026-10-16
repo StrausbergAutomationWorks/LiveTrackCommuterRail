@@ -24,7 +24,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up one operator."""
     op = OPERATORS[entry.data[CONF_OPERATOR]]
     coordinator = CommuterRailCoordinator(hass, entry, op)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except BaseException:
+        # A failed setup is retried with a NEW coordinator: give back this one's
+        # claim on the shared Digitraffic client, or it would never be released.
+        coordinator.release()
+        raise
+    entry.async_on_unload(coordinator.release)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
