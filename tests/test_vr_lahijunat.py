@@ -104,6 +104,34 @@ class StateTests(unittest.TestCase):
         before = [row("HKI", "DEPARTURE", 10), row("KKN", "ARRIVAL", 30)]
         self.assertEqual(vr.state(record(ttype="HV", line="V", rows=before)), "nis")
 
+    def test_a_stop_made_without_an_actual_is_behind_a_later_actual(self):
+        # 1502-16, 2026-10-16: Santala made, no actual; Lappohja after it has one.
+        rows = [row("HNK", "DEPARTURE", -30, actual=True), row("STA", "ARRIVAL", -20),
+                row("LPO", "ARRIVAL", -10, actual=True, diff=1)]
+        self.assertIsNone(vr.state(record(rows=rows)))
+        rows.append(row("SGY", "ARRIVAL", 5, diff=2))
+        self.assertEqual(vr.state(record(rows=rows)), "service")
+        code, eta, delay = vr.next_commercial(record(rows=rows)["train"])
+        self.assertEqual((code, delay), ("SGY", 2))
+        self.assertEqual(eta, T0 + timedelta(minutes=5))
+
+    def test_next_commercial_falls_back_to_the_last_actuals_delay_and_the_estimate(self):
+        rows = [row("HKI", "DEPARTURE", 0, actual=True, diff=3),
+                dict(row("PSL", "ARRIVAL", 5), liveEstimateTime=iso(T0 + timedelta(minutes=8)))]
+        code, eta, delay = vr.next_commercial(record(rows=rows)["train"])
+        self.assertEqual((code, delay, eta), ("PSL", 3, T0 + timedelta(minutes=8)))
+        rows[1] = dict(rows[1], differenceInMinutes=True)     # a bool is not a delay
+        self.assertEqual(vr.next_commercial(record(rows=rows)["train"])[2], 3)
+        self.assertIsNone(vr.next_commercial(record(rows=FINISHED)["train"]))
+        self.assertIsNone(vr.next_commercial(None))
+        # Before departure: the origin is next, with no delay known.
+        self.assertEqual(vr.next_commercial(record(rows=BEFORE)["train"])[::2], ("HKI", None))
+
+    def test_line_v_stops_behind_its_last_actual_do_not_count(self):
+        rows = [row("RI", "DEPARTURE", -30, actual=True), row("HY", "ARRIVAL", -20),
+                row("JK", "ARRIVAL", -10, commercial=False, actual=True), row("HKI", "ARRIVAL", 20)]
+        self.assertEqual(vr.state(record(ttype="HV", line="V", rows=rows)), "nis")
+
     def test_line_v_is_dropped_once_its_last_row_is_made(self):
         self.assertIsNone(vr.state(record(ttype="HV", line="V", rows=POSITIONING_DONE)))
 

@@ -60,8 +60,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from saw_livetrack.digitraffic_rail import ATTRIBUTION, BASE, DEFAULT_USER
-from saw_livetrack.digitraffic_rail import next_stop as _next_stop
+from saw_livetrack.digitraffic_rail import ATTRIBUTION, BASE, DEFAULT_USER, parse_ts
 
 from .base import SOURCE_DIGITRAFFIC, Obs, Operator
 
@@ -112,6 +111,34 @@ def _ahead(row: Mapping[str, Any]) -> bool:
             and not row.get("cancelled") and not row.get("actualTime"))
 
 
+def _last_actual(rows: list[Mapping[str, Any]]) -> int:
+    """Index of the last row with an actual time, -1 with none. A train's progress is
+    read from HERE: a stop it made can lack an actual time when a LATER row has one
+    (1,076 of 5,224 commuter runs over 10-15 Oct, bin\\fi_noactual.txt; live 2026-10-16,
+    1502 made Santala and Skogby with no actual between two that had one)."""
+    return max((i for i, r in enumerate(rows) if r.get("actualTime")), default=-1)
+
+
+def next_commercial(train: Mapping[str, Any] | None) -> tuple[str, Any, int | None] | None:
+    """(station code, ETA, delay in minutes) of the next commercial stop after the
+    train's last actual row, or None. ETA: the live estimate, else the schedule. Delay:
+    that row's differenceInMinutes (rounded to the minute), else the last actual's.
+    saw_livetrack.digitraffic_rail.next_stop takes the FIRST row without an actual
+    instead, and stalls behind a missed one."""
+    rows = _rows(train)
+    last = _last_actual(rows)
+    fallback = rows[last].get("differenceInMinutes") if last >= 0 else None
+    for r in rows[last + 1:]:
+        if not _ahead(r):
+            continue
+        eta = parse_ts(r.get("liveEstimateTime")) or parse_ts(r.get("scheduledTime"))
+        delay = r.get("differenceInMinutes")
+        if not isinstance(delay, int) or isinstance(delay, bool):
+            delay = fallback
+        return r.get("stationShortCode"), eta, delay
+    return None
+
+
 def state(rec: Mapping[str, Any]) -> str | None:
     """'service', 'nis', or None (not published: cancelled, finished, or no train)."""
     train = rec.get("train")
@@ -120,13 +147,14 @@ def state(rec: Mapping[str, Any]) -> str | None:
     rows = _rows(train)
     if not rows:
         return None
+    after = _last_actual(rows) + 1
     if rec.get("train_type") == POSITIONING:
         # Every HV run is "commercial" at its first and last rows (100 of 100, measured:
         # fi_hv_o_check.txt); only a stop between them carries anyone.
-        if any(_ahead(r) for r in rows[1:-1]):
+        if any(_ahead(r) for r in rows[max(after, 1):-1]):
             return "service"
         return None if rows[-1].get("actualTime") else "nis"
-    return "service" if any(_ahead(r) for r in rows) else None
+    return "service" if any(_ahead(r) for r in rows[after:]) else None
 
 
 def parse(records: list[Mapping[str, Any]]) -> list[Obs]:
@@ -175,7 +203,7 @@ def stops(records: list[Mapping[str, Any]], static: dict[str, Any] | None,
             continue
         vid = identity(number, rec.get("departure_date"))
         train = rec["train"]
-        nxt = _next_stop(train, commercial_only=True)
+        nxt = next_commercial(train)
         if nxt is not None:
             code, eta, delay = nxt
             name = names.get(code) if isinstance(code, str) else None
