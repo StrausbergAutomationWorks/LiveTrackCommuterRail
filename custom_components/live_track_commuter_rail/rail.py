@@ -87,14 +87,18 @@ def simplify(pl: list, tol: float) -> list:
     return [p for p, k in zip(pl, keep) if k]
 
 
-def shapes_from_zip(raw: bytes) -> list[list[list[float]]]:
-    """The railroad's GTFS shapes as lines of [lat, lon]: by sequence, simplified at
+def shapes_indexed(raw: bytes) -> tuple[list[list[list[float]]], dict[str, list[int]]]:
+    """(lines, {shape_id: [index of its line, 1 when that line is the shape reversed,
+    else 0]}). The index lets an operator follow a shape in its own order (SSOT 9,
+    SE Queensland's arrow) on the same deduplicated lines the off-rail check uses.
+
+    The railroad's GTFS shapes as lines of [lat, lon]: by sequence, simplified at
     SHAPE_TOLERANCE_M, rounded to 5 decimals, duplicates (either direction) dropped.
     [] when the timetable has no shapes.txt. Keys and values are stripped (Metra
     writes a space after each comma). Blocking: run it in an executor."""
     z = zipfile.ZipFile(io.BytesIO(raw))
     if "shapes.txt" not in z.namelist():
-        return []
+        return [], {}
     pts: dict[str, list] = {}
     with z.open("shapes.txt") as fh:
         for r in csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8-sig")):
@@ -104,7 +108,9 @@ def shapes_from_zip(raw: bytes) -> list[list[list[float]]]:
                     (float(r["shape_pt_sequence"]), float(r["shape_pt_lat"]), float(r["shape_pt_lon"])))
             except (KeyError, ValueError):
                 continue
-    out, seen = [], set()
+    out: list = []
+    seen: dict[tuple, int] = {}
+    index: dict[str, list[int]] = {}
     for sid in sorted(pts):
         pl = simplify([(a, b) for _, a, b in sorted(pts[sid])], SHAPE_TOLERANCE_M)
         q = []
@@ -113,11 +119,23 @@ def shapes_from_zip(raw: bytes) -> list[list[list[float]]]:
             if not q or q[-1] != p:
                 q.append(p)
         key = tuple(map(tuple, q))
-        if len(q) < 2 or key in seen or key[::-1] in seen:
+        if len(q) < 2:
             continue
-        seen.add(key)
+        if key in seen:
+            index[sid] = [seen[key], 0]
+            continue
+        if key[::-1] in seen:
+            index[sid] = [seen[key[::-1]], 1]
+            continue
+        seen[key] = len(out)
+        index[sid] = [len(out), 0]
         out.append(q)
-    return out
+    return out, index
+
+
+def shapes_from_zip(raw: bytes) -> list[list[list[float]]]:
+    """The lines of shapes_indexed. Blocking: run it in an executor."""
+    return shapes_indexed(raw)[0]
 
 
 class RailCheck:
@@ -128,8 +146,11 @@ class RailCheck:
     NARN nor any shape, nothing is refused either.
     """
 
-    def __init__(self, narn: RailIndex | None) -> None:
+    def __init__(self, narn: RailIndex | None, distance_m: float = OFF_RAIL_M) -> None:
         self._narn = narn
+        # The operator's own distance (Operator.off_rail_m): 300 m on US track, 1 km in
+        # SE Queensland (SSOT 9.1).
+        self._m = distance_m
         self._shapes: RailIndex | None = None
         self._key = None
 
@@ -153,6 +174,6 @@ class RailCheck:
         narn = self._narn is not None and len(self._narn) > 0
         if not narn and not len(self._shapes):
             return True
-        if narn and self._narn.near(lat, lon, OFF_RAIL_M):
+        if narn and self._narn.near(lat, lon, self._m):
             return True
-        return self._shapes.near(lat, lon, OFF_RAIL_M)
+        return self._shapes.near(lat, lon, self._m)

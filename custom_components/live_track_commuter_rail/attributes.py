@@ -38,6 +38,9 @@ PASSTHROUGH = (
     "marker_arrow_outline_color",
     "marker_ring_color",
     "marker_ring_width",
+    "marker_symbol",
+    "marker_symbol_outline_color",
+    "late_threshold_min",
 )
 
 

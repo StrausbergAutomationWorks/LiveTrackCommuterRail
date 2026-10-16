@@ -13,8 +13,9 @@ from __future__ import annotations
 from .base import REGIONS, Obs, Operator
 from .metra import METRA
 from .nictd import NICTD
+from .qr_citytrain import QR_CITYTRAIN
 
-OPERATORS: dict[str, Operator] = {op.id: op for op in (METRA, NICTD)}
+OPERATORS: dict[str, Operator] = {op.id: op for op in (METRA, NICTD, QR_CITYTRAIN)}
 
 
 def regions_in_use() -> dict[str, str]:

@@ -31,7 +31,7 @@ class ShippedFiles(unittest.TestCase):
 
     def test_a_file_for_every_railroad_with_a_timetable(self):
         for oid, op in ops.OPERATORS.items():
-            if op.static_url:
+            if op.static_url and op.narn:
                 self.assertTrue(os.path.isfile(os.path.join(rail.RAIL_DIR, f"{oid}.json.gz")), oid)
 
     def test_header(self):

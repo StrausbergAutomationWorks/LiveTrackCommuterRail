@@ -17,6 +17,8 @@ from typing import Any, Callable
 
 from saw_livetrack.gtfs.realtime import Obs, position_of, vehicle_time  # noqa: F401
 
+from ..const import OFF_RAIL_M
+
 
 @dataclass(frozen=True)
 class Operator:
@@ -46,6 +48,24 @@ class Operator:
     static_stop_times: bool = False
     # Obs -> marker styling keys (06_MAP_CONTRACT.md D4a), each only when set.
     styling: Callable[[Obs], dict[str, Any]] | None = None
+    # Keep only these GTFS route_types before distilling the timetable (statics.py,
+    # gtfs_filter). None: the whole zip. SE Queensland's zip is every mode.
+    static_route_types: tuple[str, ...] | None = None
+    # The largest timetable download accepted, in bytes.
+    static_max_bytes: int = 20 * 1024 * 1024
+    # (the timetable zip, as cut; the distilled timetable; {shape_id: [line index,
+    # reversed]}) -> extra keys kept with the timetable under "extras", for decorate.
+    static_extras: Callable[[Any, dict[str, Any], dict[str, list[int]]], dict[str, Any]] | None = None
+    # A fix older than this at the poll is refused (poll.fresh_only). None: no limit.
+    max_fix_age_s: float | None = None
+    # On rail: within this of NARN track or of the railroad's own shapes (rail.RailCheck).
+    off_rail_m: float = OFF_RAIL_M
+    # True where the FRA North American Rail Network covers the railroad (US only), so
+    # rail/<id>.json.gz ships with the integration. False: its own shapes alone.
+    narn: bool = True
+    # (record, the Obs it came from, the distilled timetable or None) -> None: adjusts
+    # one record Fleet published, in place (poll.decorate_all). None: nothing.
+    decorate: Callable[[dict[str, Any], Obs, dict[str, Any] | None], None] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -59,4 +79,5 @@ REGIONS: dict[str, str] = {
     "US-IL": "United States — Illinois",
     "US-IN": "United States — Indiana",
     "US-WI": "United States — Wisconsin",
+    "AU-QLD": "Australia — Queensland",
 }

@@ -13,6 +13,7 @@ the railroads it reads. It is original work, MIT-licensed.
 |---|---|---|---|
 | Metra | Chicago area (Illinois, Wisconsin) | Yes, your own: request one at [metra.com/developers](https://metra.com/developers) | [Metra's GTFS-Realtime licence](https://metra.com/gtfs-realtime-api-key-request-license-agreement) |
 | South Shore Line (NICTD) | Chicago to South Bend (Illinois, Indiana) | No | Public feed published for NICTD by ETA SPOT |
+| Queensland Rail Citytrain | SE Queensland (Australia) | No | [Translink open data](https://translink.com.au/about-translink/open-data); data CC BY 4.0, credit Translink |
 
 Read each railroad's terms before you use its data; they bind you, as the
 person receiving it.
@@ -64,6 +65,17 @@ equipment.
   `rail/` and rebuilt with `tools/build_rail.py`; the railroad's own route comes
   from the timetable the integration already downloads. Nothing is refused until
   that timetable has loaded.
+* **SE Queensland** reports no speed and no bearing, and its positions are fixed
+  points on the track, not GPS. A position more than 5 minutes old is refused
+  (Translink's feed keeps a train whose position froze until the service day
+  ends), as is one more than 1 km from every rail line in Translink's own
+  timetable (there is no FRA network outside the US). The marker carries the
+  line's T number in Translink's line colours, swapped for trains heading
+  south, and a star for the special runs that have no T number; the arrow
+  follows the train's own route in the timetable. A train is late from 4
+  minutes, 6 on the Gold Coast, Rosewood and Sunshine Coast lines, Queensland
+  Rail's own rule (`late_threshold_min`). Translink's timetable covers every
+  mode; only its trains are kept.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

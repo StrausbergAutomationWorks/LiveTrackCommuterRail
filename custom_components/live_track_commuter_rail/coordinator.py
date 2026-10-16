@@ -36,7 +36,7 @@ from .const import (
     USER_AGENT,
 )
 from saw_livetrack.gtfs import Fleet, decode
-from . import rail
+from . import poll, rail
 from .operators import Operator
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
@@ -161,10 +161,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Once, off the event loop: the rail this railroad runs on (SSOT
             # 7.10). Without a file there is no check and nothing changes.
             self._rail_loaded = True
-            idx = await self.hass.async_add_executor_job(rail.load, op.id)
+            # NARN covers US railroads only (Operator.narn); elsewhere the check is the
+            # railroad's own shapes alone, at its own distance (off_rail_m; SSOT 9.1).
+            idx = (await self.hass.async_add_executor_job(rail.load, op.id)
+                   if op.narn else None)
             # NARN track OR the railroad's own route (rail.RailCheck): NARN lacks
             # lines newer than it, such as NICTD's Monon Corridor south of Hammond.
-            self._rail_check = rail.RailCheck(idx)
+            self._rail_check = rail.RailCheck(idx, op.off_rail_m)
             self.fleet.on_rail = self._rail_check
             if idx is not None:
                 self.rail_segments = len(idx)
@@ -186,6 +189,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except AuthError:
                 tu = None
             if tu is not None:
+                # A skipped stop is never the next stop (poll.drop_skipped).
+                poll.drop_skipped(tu)
                 if op.parse_delays:
                     delays = op.parse_delays(tu)
                 # Delay at the next stop, one rule for every feed (backlog 275):
@@ -200,9 +205,16 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._rail_check.set_shapes(self._static.data)
         if feed.header.HasField("timestamp"):
             self.feed_timestamp = int(feed.header.timestamp)
+        # A fix older than the operator's limit is refused before Fleet sees it
+        # (poll.fresh_only; SE Queensland's frozen fixes, SSOT 9.1).
+        observations, stale = poll.fresh_only(op.parse(feed), now, op.max_fix_age_s)
         result = self.fleet.update(
-            op.parse(feed), now,
+            observations, now,
             show_parked=self._show_parked, delays=delays, next_stops=next_stops,
             static=self._static.data, trip_delays=trip_delays)
+        result["stale"] = stale
+        # The operator's own touches after Fleet (SE Queensland: look, label, lateness
+        # and the arrow, from the timetable; poll.decorate_all).
+        poll.decorate_all(result, observations, self._static.data, op.decorate)
         self._last_good = result
         return result

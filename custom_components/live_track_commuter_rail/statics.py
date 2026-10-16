@@ -17,10 +17,12 @@ the realtime feed only and is never sent to another host.
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 import os
 import time
+import zipfile
 from typing import Any
 
 import aiohttp
@@ -28,7 +30,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 
 from .const import USER_AGENT
-from . import rail
+from . import gtfs_filter, rail
 from .operators import Operator
 from saw_livetrack.gtfs import STATIC_VERSION, distill
 
@@ -37,14 +39,18 @@ _LOGGER = logging.getLogger(__name__)
 REFRESH_S = 24 * 3600
 RETRY_S = 3600
 FETCH_TIMEOUT = 60
-MAX_BYTES = 20 * 1024 * 1024
 
 
-def _distill(raw: bytes, stop_times: bool) -> dict[str, Any]:
+def _distill(raw: bytes, op: Operator) -> dict[str, Any]:
     """distill, plus the railroad's own route lines for the off-rail check
-    (rail.RailCheck, SSOT 7.10)."""
-    d = distill(raw, stop_times=stop_times)
-    d["rail_shapes"] = rail.shapes_from_zip(raw)
+    (rail.RailCheck, SSOT 7.10) and the operator's extras (SSOT 9). A railroad whose zip
+    carries other modes is cut to its own route_types first (gtfs_filter)."""
+    if op.static_route_types:
+        raw = gtfs_filter.keep_route_types(raw, op.static_route_types)
+    d = distill(raw, stop_times=op.static_stop_times)
+    d["rail_shapes"], index = rail.shapes_indexed(raw)
+    if op.static_extras is not None:
+        d["extras"] = op.static_extras(zipfile.ZipFile(io.BytesIO(raw)), d, index)
     return d
 
 
@@ -110,7 +116,9 @@ class StaticTimetable:
         except (OSError, ValueError):
             return None
         # A cache from before 2026-10-09 has no rail_shapes: fetched again, once.
+        # An operator with extras needs them too (SE Queensland's look and arrow).
         return (d if isinstance(d, dict) and d.get("v") == STATIC_VERSION and "rail_shapes" in d
+                and (self._op.static_extras is None or "extras" in d)
                 else None)
 
     def _write(self, d: dict[str, Any]) -> None:
@@ -141,15 +149,17 @@ class StaticTimetable:
                 if resp.status != 200:
                     _LOGGER.debug("%s timetable answered HTTP %s", op.id, resp.status)
                     return self._data
-                if (resp.content_length or 0) > MAX_BYTES:
-                    _LOGGER.debug("%s timetable larger than %s bytes; ignored", op.id, MAX_BYTES)
+                if (resp.content_length or 0) > op.static_max_bytes:
+                    _LOGGER.debug("%s timetable larger than %s bytes; ignored", op.id,
+                                  op.static_max_bytes)
                     return self._data
                 raw = await resp.read()
-            if len(raw) > MAX_BYTES:
-                _LOGGER.debug("%s timetable larger than %s bytes; ignored", op.id, MAX_BYTES)
+            if len(raw) > op.static_max_bytes:
+                _LOGGER.debug("%s timetable larger than %s bytes; ignored", op.id,
+                              op.static_max_bytes)
                 return self._data
             d = await self._hass.async_add_executor_job(
-                lambda: _distill(raw, op.static_stop_times))
+                lambda: _distill(raw, op))
             d["fetched_at"] = now
             d["source"] = op.static_url
             await self._hass.async_add_executor_job(self._write, d)
