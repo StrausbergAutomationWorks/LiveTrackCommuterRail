@@ -231,6 +231,52 @@ class PlaceTests(unittest.TestCase):
         self.assertEqual(vr.area_colour(None, "KE,"), "#8C4799")
 
 
+class DirectionTests(unittest.TestCase):
+    """Lee 2026-10-16 00:43: away from Helsinki filled, toward it swapped."""
+
+    def keys(self, number, rows, line="R"):
+        _, _, ex = vr.stops([record(number=number, line=line, rows=rows)], NAMES, 0.0)
+        k = ex[f"{number}-15"]
+        return (k["marker_color"], k["marker_ring_color"], k["marker_label_color"],
+                k["marker_arrow_color"])
+
+    def test_odd_away_is_filled_even_toward_is_swapped(self):
+        out = [row("HKI", "DEPARTURE", -5, actual=True), row("PSL", "ARRIVAL", 0)]
+        self.assertEqual(self.keys("9635", out), ("#8C4799", "#FFFFFF", "#FFFFFF", "#8C4799"))
+        back = [row("RI", "DEPARTURE", -5, actual=True), row("HY", "ARRIVAL", 5)]
+        self.assertEqual(self.keys("9636", back), ("#FFFFFF", "#00B451", "#00B451", "#00B451"))
+
+    def test_a_ring_swaps_at_the_airport(self):
+        ring = [row("HKI", "DEPARTURE", -30, actual=True), row("PSL", "ARRIVAL", -25, actual=True),
+                row("LEN", "ARRIVAL", -2), row("LEN", "DEPARTURE", -1), row("TKL", "ARRIVAL", 5),
+                row("HKI", "ARRIVAL", 30)]
+        # Even, but away until it has made the airport.
+        self.assertEqual(self.keys("8628", ring, line="P")[:2], ("#8C4799", "#FFFFFF"))
+        made = [dict(r) for r in ring]
+        made[2]["actualTime"] = made[2]["scheduledTime"]
+        # Odd, but toward Helsinki once it has.
+        self.assertEqual(self.keys("8629", made, line="P")[:2], ("#FFFFFF", "#8C4799"))
+
+    def test_a_loop_without_the_airport_goes_by_parity(self):
+        loop = [row("HKI", "DEPARTURE", -5, actual=True), row("PSL", "ARRIVAL", 0),
+                row("HKI", "ARRIVAL", 20)]
+        self.assertEqual(self.keys("8630", loop, line="P")[0], "#FFFFFF")
+        self.assertEqual(self.keys("8631", loop, line="P")[0], "#8C4799")
+
+    def test_with_no_station_the_line_colour_still_swaps(self):
+        blind = [row("", "DEPARTURE", 5), row("", "ARRIVAL", 20)]
+        self.assertEqual(self.keys("9640", blind, line="G"), ("#FFFFFF", "#00B451", "#00B451", "#00B451"))
+        self.assertEqual(vr.line_colour("r"), "#8C4799")
+        self.assertIsNone(vr.line_colour("X"))
+        self.assertIsNone(vr.line_colour(None))
+
+    def test_inbound_reads_digits_only(self):
+        self.assertFalse(vr.inbound(None, "9123"))
+        self.assertTrue(vr.inbound(None, "9124"))
+        self.assertFalse(vr.inbound(None, None))
+        self.assertFalse(vr.inbound(None, "V12"))
+
+
 class LookTests(unittest.TestCase):
 
     def obs(self, line, in_service=True, vid="9123-15"):

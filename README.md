@@ -85,7 +85,11 @@ equipment.
   colour the lines: HSL purple while its next stop is in HSL's fare area (zones
   A to E, from HSL's open data, CC BY 4.0), VR green outside it. An R train is
   purple to Jokela and green on to Riihimäki; G, M and O, which are not HSL
-  lines, are always green. A train is shown from its first station
+  lines, are always green. Direction swaps the colours: a train heading away
+  from Helsinki is the filled disc with a white letter, one heading toward it a
+  white disc with the letter and ring in the line's colour. VR numbers its
+  trains by direction (odd away from Helsinki, even toward); the ring lines I
+  and P turn toward Helsinki at the airport. A train is shown from its first station
   until its last commercial stop, then removed. Line V runs that carry no one
   are shown as `NIS <number>` while they move. A train is late from 4 minutes
   (VR's rule, more than 3) and very late from 8. Positions under the Ring Rail

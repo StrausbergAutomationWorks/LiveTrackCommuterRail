@@ -45,6 +45,16 @@ service: grey #808080, same ring and arrow. An unknown letter: the number as the
 It read (2dded1f to 87da98a): purple on the letters with HSL routes, green on the others,
 which drew R, D, T, Z and H green inside Helsinki, where every sign is purple.
 
+DIRECTION (Lee 2026-10-16 00:43, "show direction by swapping outline color and fill
+color"; the rings "by half"): away from Helsinki the filled disc above; toward Helsinki a
+WHITE disc with the ring, the letter and the arrow in the place's colour (look()), as SE
+Queensland and VIA swap. Digitraffic has no direction field; VR's numbering is it, odd
+away and even toward (bin\\ltcr_fi_parity.txt, 10-15 Oct: every commuter run whose ends
+differ along the line; 63 line O runs between Kouvola and Kotka only look wrong as the
+crow flies, and bin\\fi_parity.py found the same for long distance). The rings I and P
+start and end at Helsinki and run both parities, so a ring run is away until it has made
+the airport, LEN, and toward after (inbound()). NIS stays grey, never swapped.
+
 LATE (SSOT 0, 8.1): VR's commuter rule, late at more than 3 minutes at the departure
 station or destination; differenceInMinutes is the delay rounded to the minute, so
 late from 4. Red from 8 (2T, Lee).
@@ -92,6 +102,8 @@ HSL_STATIONS = frozenset((
     "SAU", "SAV", "STI", "TKL", "TNA", "TOL", "TRL", "VEH", "VKS", "VMO",
 ))
 POSITIONING = "HV"
+# Lentoasema: where a ring run (I, P) turns back toward Helsinki.
+AIRPORT = "LEN"
 
 LATE_MIN = 4
 VERY_LATE_MIN = 8
@@ -222,10 +234,10 @@ def stops(records: list[Mapping[str, Any]], static: dict[str, Any] | None,
         train = rec["train"]
         nxt = next_commercial(train)
         keys: dict[str, Any] = {}
-        fill = area_colour(train, nxt[0] if nxt is not None else None)
+        fill = (area_colour(train, nxt[0] if nxt is not None else None)
+                or line_colour(train.get("commuterLineID")))
         if fill is not None:
-            keys["marker_color"] = fill
-            keys["marker_arrow_color"] = fill
+            keys.update(look(fill, inbound(train, number)))
         if nxt is not None:
             code, eta, delay = nxt
             name = names.get(code) if isinstance(code, str) else None
@@ -256,12 +268,40 @@ def area_colour(train: Mapping[str, Any] | None, next_code: str | None) -> str |
     return HSL_PURPLE if code.rstrip(",") in HSL_STATIONS else VR_GREEN
 
 
+def line_colour(letter: Any) -> str | None:
+    """With no station known: HSL's 13 lines purple, VR's own green, else None."""
+    letter = letter.upper() if isinstance(letter, str) else ""
+    return HSL_PURPLE if letter in HSL_LINES else VR_GREEN if letter in VR_ONLY_LINES else None
+
+
+def inbound(train: Mapping[str, Any] | None, number: Any) -> bool:
+    """True toward Helsinki, False away. A ring run (first station = last) that calls at
+    the airport: away until it has made it, toward after. Otherwise the number's parity,
+    even toward (VR's numbering)."""
+    rows = _rows(train)
+    if rows and rows[0].get("stationShortCode") == rows[-1].get("stationShortCode"):
+        air = next((i for i, r in enumerate(rows) if r.get("stationShortCode") == AIRPORT), None)
+        if air is not None:
+            return _last_actual(rows) >= air
+    return isinstance(number, str) and number.isdigit() and int(number) % 2 == 0
+
+
+def look(fill: str, toward: bool) -> dict[str, str]:
+    """The disc's colours by direction: away, the fill with a white ring and letter;
+    toward Helsinki swapped, a white disc with the ring and letter in the fill. The arrow
+    is the fill both ways (outlined white by styling())."""
+    if toward:
+        return {"marker_color": WHITE, "marker_ring_color": fill,
+                "marker_label_color": fill, "marker_arrow_color": fill}
+    return {"marker_color": fill, "marker_ring_color": WHITE,
+            "marker_label_color": WHITE, "marker_arrow_color": fill}
+
+
 def styling(obs: Obs) -> dict[str, Any]:
     """The disc's colours: by line in service (HSL's lines purple), grey out of service.
-    The PLACE overrides the line where a station is known (stops, area_colour)."""
+    The PLACE and the DIRECTION override it in service (stops: area_colour, look)."""
     if obs.in_service:
-        letter = (obs.line or "").upper()
-        fill = HSL_PURPLE if letter in HSL_LINES else VR_GREEN if letter in VR_ONLY_LINES else None
+        fill = line_colour(obs.line)
     else:
         fill = GREY
     keys: dict[str, Any] = {
