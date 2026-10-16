@@ -92,6 +92,13 @@ class Operator:
     # A fix at least this old at the poll never counts as standing: `stalled` is
     # dropped (poll.unstall_stale; Finland's Ring Rail tunnel, SSOT 8.1). None: off.
     stand_max_fix_age_s: float | None = None
+    # Tunnels its trains are pushed through where their fixes stop, as the map
+    # contract's along-route estimate (tunnel.TunnelPush, D3d; Finland's Lentoasema
+    # tunnel, SSOT 8.3). Needs the railroad's track network. Empty: none.
+    tunnels: tuple[Any, ...] = ()
+    # Digitraffic: records -> {vehicle: {station code: tunnel.StopClock}} for the trains
+    # in service on a tunnel's line. None: no clocks, so nothing is pushed.
+    tunnel_clocks: Callable[[Any], dict[str, dict[str, Any]]] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property

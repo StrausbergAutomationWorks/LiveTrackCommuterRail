@@ -32,6 +32,12 @@ STALE FIXES (8.1): kept up to 10 minutes (MAX_FIX_AGE_S, poll.fresh_only), and a
 poll.unstall_stale): lines P and I freeze at the ends of the Ring Rail airport tunnel
 while the train is underground, and a late one must not pulse there.
 
+THE TUNNEL (SSOT 8.3 step 3, backlog 290): while I and P are dark in the Lentoasema
+tunnel they are PUSHED through it as the map contract's along-route estimate
+(tunnel.TunnelPush, D3d): portal, the two stops (LEN and AVP), the far portal, the
+comeback point, on the measured timings (TUNNELS) and each train's own stop times
+(tunnel_clocks). The next fresh fix takes over.
+
 THE LOOK (Lee 2026-10-16 00:10; research note 20_Research/FI_HSL_VR_MODES_20261016.md):
 the line letter on a disc, coloured by PLACE, as HSL's own commuter map and station
 posters draw it: HSL purple #8C4799 (HSL's screen colour for commuter trains) while the
@@ -77,6 +83,7 @@ from typing import Any, Mapping
 
 from saw_livetrack.digitraffic_rail import ATTRIBUTION, BASE, DEFAULT_USER, parse_ts
 
+from ..tunnel import StopClock, Tunnel
 from .base import SOURCE_DIGITRAFFIC, Obs, Operator
 
 HSL_PURPLE = "#8C4799"
@@ -104,6 +111,31 @@ HSL_STATIONS = frozenset((
 POSITIONING = "HV"
 # Lentoasema: where a ring run (I, P) turns back toward Helsinki.
 AIRPORT = "LEN"
+
+# The Lentoasema tunnel (infra-api tunnelit 1.2.246.578.1.17.104612, line 123 km 21+388
+# to 29+636, 8,248 m): lines I and P lose GPS in it and are pushed through (SSOT 8.3
+# step 3; 20_Research/FI_RING_TUNNEL_20261016.md). Portals: the tunnel's track ends in
+# the infra-api; stations: Digitraffic's station list. Along the shipped network
+# (bin\ltcr290s3_measure.txt): east portal to LEN 3,013 m, LEN to AVP 1,440, AVP to west
+# portal 3,737, within 21 m of the figures along the passenger shape. The comeback point
+# and the quickest times are capture round 1's quickest passages (I 135 s from AVP to
+# 197 m past the west portal; P 89 s from LEN to 138 m past the east; LEN to AVP 80 s,
+# AVP to LEN 82 s).
+LEINELA = (60.322641, 25.039419)
+KIVISTO = (60.314607, 24.846938)
+LENTOASEMA = (60.315732, 24.968343)
+AVIAPOLIS = (60.30435, 24.956191)
+EAST_PORTAL = (60.32271, 25.01315)
+WEST_PORTAL = (60.30994, 24.89449)
+TUNNELS = (
+    Tunnel(line="I", start=LEINELA, end=KIVISTO, portal_in=EAST_PORTAL,
+           stops=(("LEN", LENTOASEMA), ("AVP", AVIAPOLIS)), portal_out=WEST_PORTAL,
+           back_past_portal_m=197.0, between_s=80.0, back_s=135.0),
+    Tunnel(line="P", start=KIVISTO, end=LEINELA, portal_in=WEST_PORTAL,
+           stops=(("AVP", AVIAPOLIS), ("LEN", LENTOASEMA)), portal_out=EAST_PORTAL,
+           back_past_portal_m=138.0, between_s=82.0, back_s=89.0),
+)
+TUNNEL_STOPS = {t.line: tuple(code for code, _ in t.stops) for t in TUNNELS}
 
 LATE_MIN = 4
 VERY_LATE_MIN = 8
@@ -166,6 +198,47 @@ def next_commercial(train: Mapping[str, Any] | None) -> tuple[str, Any, int | No
             delay = fallback
         return r.get("stationShortCode"), eta, delay
     return None
+
+
+_CLOCK_FIELDS = (("actualTime", "actual"), ("liveEstimateTime", "estimate"),
+                 ("scheduledTime", "scheduled"))
+
+
+def stop_clocks(train: Mapping[str, Any] | None, codes: tuple[str, ...]
+                ) -> dict[str, StopClock]:
+    """{station code: StopClock} for each of `codes` with both an arrival and a departure
+    row in the train's timetable: the times tunnel.TunnelPush runs a tunnel stop on.
+    Digitraffic drops a row's liveEstimateTime once its actual is in
+    (bin\\ltcr290s3_measure.txt), so a StopClock carries whichever the row has now."""
+    found: dict[str, dict[str, Any]] = {}
+    for r in _rows(train):
+        code, kind = r.get("stationShortCode"), r.get("type")
+        if code not in codes or kind not in ("ARRIVAL", "DEPARTURE"):
+            continue
+        side = "arr" if kind == "ARRIVAL" else "dep"
+        times = found.setdefault(code, {})
+        times[side] = True
+        for src, name in _CLOCK_FIELDS:
+            t = parse_ts(r.get(src))
+            times[f"{side}_{name}"] = t.timestamp() if t is not None else None
+    return {code: StopClock(**{k: v for k, v in times.items() if k not in ("arr", "dep")})
+            for code, times in found.items() if times.get("arr") and times.get("dep")}
+
+
+def tunnel_clocks(records: list[Mapping[str, Any]]) -> dict[str, dict[str, StopClock]]:
+    """{vehicle: {station code: StopClock}} for the trains in service on a tunnel's line
+    whose timetable has every one of its stops."""
+    out: dict[str, dict[str, StopClock]] = {}
+    for rec in records or ():
+        number = rec.get("number")
+        letter = rec.get("commuter_line")
+        codes = TUNNEL_STOPS.get(letter.upper() if isinstance(letter, str) else "")
+        if not codes or not isinstance(number, str) or not number or state(rec) != "service":
+            continue
+        clocks = stop_clocks(rec.get("train"), codes)
+        if len(clocks) == len(codes):
+            out[identity(number, rec.get("departure_date"))] = clocks
+    return out
 
 
 def state(rec: Mapping[str, Any]) -> str | None:
@@ -348,6 +421,8 @@ VR_LAHIJUNAT = Operator(
     decorate=decorate,
     max_fix_age_s=MAX_FIX_AGE_S,
     stand_max_fix_age_s=STAND_MAX_FIX_AGE_S,
+    tunnels=TUNNELS,
+    tunnel_clocks=tunnel_clocks,
     off_rail_m=OFF_RAIL_M,
     narn=False,
     attribution=(

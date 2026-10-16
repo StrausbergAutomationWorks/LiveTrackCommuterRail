@@ -92,8 +92,13 @@ equipment.
   and P turn toward Helsinki at the airport. A train is shown from its first station
   until its last commercial stop, then removed. Line V runs that carry no one
   are shown as `NIS <number>` while they move. A train is late from 4 minutes
-  (VR's rule, more than 3) and very late from 8. Positions under the Ring Rail
-  airport tunnel freeze until the train comes out: a position 2 minutes old or
+  (VR's rule, more than 3) and very late from 8. Lines I and P report no
+  position in the Ring Rail airport tunnel, so there the integration moves the
+  train along the tracks itself: from the portal to Lentoasema and Aviapolis,
+  standing at each until its live departure estimate, then out past the far
+  portal to where the quickest trains reappear, until a real position takes
+  over. Such a position is marked `position_source: estimated`, with the last
+  real one in `fix_latitude` / `fix_longitude`. A position 2 minutes old or
   more never marks a train as stalled, and one over 10 minutes old is refused.
   Between two positions the map card slides a train along the tracks rather
   than in a straight line (`track_path`): the track network ships with the

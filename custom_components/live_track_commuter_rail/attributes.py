@@ -25,6 +25,12 @@ PASSTHROUGH = (
     "segment_duration_s",
     # D3c-v: the way along the tracks from the last fix (tracknet; Finland, SSOT 8.3).
     "track_path",
+    # D3d: "estimated" when the position was pushed along the tracks where the fixes
+    # stop (tunnel.py; Finland's airport tunnel, SSOT 8.3), with the fix it came from;
+    # "observed" on the operator's other trains in service.
+    "position_source",
+    "fix_latitude",
+    "fix_longitude",
     "course_deg",
     "icon_rotation_deg",
     "icon_rotation_basis",

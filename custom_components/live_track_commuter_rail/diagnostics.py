@@ -25,8 +25,9 @@ async def async_get_config_entry_diagnostics(
         "feed_timestamp": coordinator.feed_timestamp,
         "counts": {k: data.get(k) for k in
                    ("trains_in_service", "non_revenue", "vehicles_in_feed", "off_rail", "stale",
-                    "track_paths")},
+                    "track_paths", "estimated")},
         "track_lines": coordinator.track_lines,
+        "tunnel_ways": coordinator.tunnel_ways,
         "published": len(data.get("vehicles") or {}),
         "fleet": coordinator.fleet.stats(),
         "timetable": coordinator.timetable,

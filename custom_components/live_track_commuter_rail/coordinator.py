@@ -38,7 +38,7 @@ from .const import (
 )
 from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.gtfs import Fleet, decode
-from . import poll, rail, tracknet
+from . import poll, rail, tracknet, tunnel
 from .operators import Operator
 from .operators.base import SOURCE_DIGITRAFFIC
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
@@ -119,6 +119,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._rail_check: rail.RailCheck | None = None
         self.track_lines: int | None = None
         self._track_path = None
+        # Trains pushed through tunnels where their fixes stop (tunnel.py; SSOT 8.3).
+        self._push: tunnel.TunnelPush | None = None
+        self.tunnel_ways: int | None = None
         # Digitraffic (Finland): the ONE shared client per Home Assistant, with this
         # operator's consumer registered (saw-livetrack 0.2.7; release() gives it back).
         self._rail_client = None
@@ -213,7 +216,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if net is not None:
                 self.track_lines = len(net)
                 self._track_path = partial(tracknet.track_path, net)
-            _LOGGER.debug("%s tracks: %s lines", op.id, self.track_lines)
+                if op.tunnels and op.tunnel_clocks is not None:
+                    # Each tunnel's way along the tracks, routed once (SSOT 8.3).
+                    self._push = await self.hass.async_add_executor_job(
+                        tunnel.TunnelPush, net, op.tunnels)
+                    self.tunnel_ways = len(self._push.ways)
+            _LOGGER.debug("%s tracks: %s lines, %s tunnel ways", op.id, self.track_lines,
+                          self.tunnel_ways)
 
         # The timetable loads and refreshes in the background; until it has,
         # no next station is published and nothing else changes.
@@ -270,5 +279,10 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Along the tracks from the last fix (D3c-v), after everything that moves or
         # replaces a position.
         result["track_paths"] = poll.add_track_paths(result, self._track_path)
+        if self._push is not None:
+            # A train dark in a tunnel is pushed along it on its own stop times, after the
+            # paths from the fixes: it replaces the position and the path (D3d, SSOT 8.3).
+            counts = self._push.apply(result, observations, op.tunnel_clocks(feed), now)
+            result["estimated"] = counts[tunnel.ESTIMATED]
         self._last_good = result
         return result
