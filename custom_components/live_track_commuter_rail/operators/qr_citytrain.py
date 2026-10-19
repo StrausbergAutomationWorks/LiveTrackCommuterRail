@@ -253,7 +253,9 @@ _lines_key: Any = None
 
 def _line(static: dict[str, Any], idx: int) -> _Line | None:
     global _lines_key
-    key = static.get("fetched_at")
+    # Which timetable as well as when: Renfe's operators read lines through here too
+    # (operators/renfe.py), and two timetables may carry the same fetched_at.
+    key = (id(static), static.get("fetched_at"))
     if key != _lines_key:
         _lines.clear()
         _lines_key = key

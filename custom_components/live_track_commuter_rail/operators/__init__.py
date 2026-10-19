@@ -14,10 +14,11 @@ from .base import REGIONS, Obs, Operator
 from .metra import METRA
 from .nictd import NICTD
 from .qr_citytrain import QR_CITYTRAIN
+from .renfe import RENFE_OPERATORS
 from .vr_lahijunat import VR_LAHIJUNAT
 
 OPERATORS: dict[str, Operator] = {op.id: op for op in (METRA, NICTD, QR_CITYTRAIN,
-                                                        VR_LAHIJUNAT)}
+                                                        VR_LAHIJUNAT, *RENFE_OPERATORS)}
 
 
 def regions_in_use() -> dict[str, str]:

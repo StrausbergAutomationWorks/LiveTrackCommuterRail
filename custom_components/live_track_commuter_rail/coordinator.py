@@ -37,11 +37,13 @@ from .const import (
     USER_AGENT,
 )
 from saw_livetrack.digitraffic_rail import DigitrafficError
+from saw_livetrack.renfe import RenfeError
 from saw_livetrack.gtfs import Fleet, decode
 from . import poll, rail, tracknet, tunnel
 from .operators import Operator
-from .operators.base import SOURCE_DIGITRAFFIC
+from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_RENFE
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
+from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
 from .schedule import timetable_stale
@@ -108,7 +110,14 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._session = async_get_clientsession(hass)
         self.fleet = Fleet(styling=op.styling,
                            **({} if op.stall_m is None else {"stall_m": op.stall_m}))
-        self._static = StaticTimetable(hass, self._session, op)
+        # Renfe (Spain, SSOT 10): the ONE shared client per Home Assistant, registered
+        # as this operator's consumer; it also hands over its copy of the timetable.
+        self._renfe = None
+        if op.source == SOURCE_RENFE:
+            self._renfe = get_shared_renfe_client(hass, op.renfe_consumer)
+        self._static = StaticTimetable(
+            hass, self._session, op,
+            raw_source=self._renfe.static_zip if self._renfe is not None else None)
         self._failures = 0
         self._last_good: dict[str, Any] | None = None
         self.feed_timestamp: int | None = None
@@ -134,6 +143,21 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._rail_client is not None:
             self._rail_client = None
             release_shared_rail_client(self.hass, self.operator.digitraffic_consumer)
+        if self._renfe is not None:
+            self._renfe = None
+            release_shared_renfe_client(self.hass, self.operator.renfe_consumer)
+
+    async def _fetch_renfe(self):
+        """(positions, trip updates) for this operator's consumer from the shared Renfe
+        client (blocking: the executor), or None on a failed fetch. Keyless: only the
+        exception's TYPE is logged, as for every feed here."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(
+                self._renfe.for_consumer, op.renfe_consumer)
+        except RenfeError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
 
     async def _fetch_digitraffic(self) -> list[dict[str, Any]] | None:
         """This operator's records from the shared client (blocking: the executor), or
@@ -150,6 +174,11 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def timetable(self) -> dict[str, Any] | None:
         return self._static.info
+
+    @property
+    def renfe_stats(self) -> dict[str, Any] | None:
+        """The shared Renfe client's counters, for diagnostics; None for other sources."""
+        return self._renfe.stats() if self._renfe is not None else None
 
     @property
     def rail_shape_segments(self) -> int | None:
@@ -175,7 +204,12 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         op = self.operator
-        if op.source == SOURCE_DIGITRAFFIC:
+        tu = None
+        if op.source == SOURCE_RENFE:
+            # Both feeds at once, already cut to this integration's consumer.
+            got = await self._fetch_renfe()
+            feed, tu = got if got is not None else (None, None)
+        elif op.source == SOURCE_DIGITRAFFIC:
             # The client's records stand in for a feed: parse(records) reads them.
             feed = await self._fetch_digitraffic()
         else:
@@ -234,23 +268,24 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         delays = None
         next_stops = None
         trip_delays = None
-        if op.trip_updates_url and (op.parse_delays or op.static_url):
+        if tu is None and op.trip_updates_url and (op.parse_delays or op.static_url):
             try:
                 tu = await fetch_feed(self._session, op.trip_updates_url, self._params)
             except AuthError:
                 tu = None
-            if tu is not None:
-                # A skipped stop is never the next stop (poll.drop_skipped).
-                poll.drop_skipped(tu)
-                if op.parse_delays:
-                    delays = op.parse_delays(tu)
-                # Delay at the next stop, one rule for every feed (backlog 275):
-                # the update's own delay, else predicted minus scheduled, which
-                # needs the timetable. Fleet prefers it to parse_delays.
-                trip_delays = stop_delays(tu, self._static.data, now)
-                if self._static.data is not None:
-                    self._check_timetable(*trip_coverage(tu, self._static.data))
-                    next_stops = next_stops_from(tu, self._static.data, now)
+        # Renfe's trip updates came with its positions (SOURCE_RENFE).
+        if tu is not None:
+            # A skipped stop is never the next stop (poll.drop_skipped).
+            poll.drop_skipped(tu)
+            if op.parse_delays:
+                delays = op.parse_delays(tu)
+            # Delay at the next stop, one rule for every feed (backlog 275):
+            # the update's own delay, else predicted minus scheduled, which
+            # needs the timetable. Fleet prefers it to parse_delays.
+            trip_delays = stop_delays(tu, self._static.data, now)
+            if self._static.data is not None:
+                self._check_timetable(*trip_coverage(tu, self._static.data))
+                next_stops = next_stops_from(tu, self._static.data, now)
 
         extras = None
         if op.parse_stops is not None:

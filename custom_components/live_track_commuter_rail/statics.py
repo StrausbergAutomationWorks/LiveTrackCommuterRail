@@ -23,7 +23,7 @@ import logging
 import os
 import time
 import zipfile
-from typing import Any
+from typing import Any, Callable
 
 import aiohttp
 
@@ -38,14 +38,21 @@ _LOGGER = logging.getLogger(__name__)
 
 REFRESH_S = 24 * 3600
 RETRY_S = 3600
-FETCH_TIMEOUT = 60
+# A timetable from a shared client that has not loaded its copy yet: asked again soon.
+SOURCE_WAIT_S = 60
 
 
 def _distill(raw: bytes, op: Operator) -> dict[str, Any]:
     """distill, plus the railroad's own route lines for the off-rail check
     (rail.RailCheck, SSOT 7.10) and the operator's extras (SSOT 9). A railroad whose zip
     carries other modes is cut to its own route_types first (gtfs_filter)."""
-    if op.static_route_types:
+    if op.static_window:
+        # Renfe (SSOT 10): the season's timetable cut to the days around today and the
+        # operator's own network first. MEASURED on the laptop: cut by route_type alone
+        # it took 66 s and peaked at 930 MB; cut to the window 27 s and 104 MB.
+        raw = gtfs_filter.keep_service_window(raw, op.static_route_types,
+                                              route_prefixes=op.static_route_prefixes)
+    elif op.static_route_types:
         raw = gtfs_filter.keep_route_types(raw, op.static_route_types)
     d = distill(raw, stop_times=op.static_stop_times)
     d["rail_shapes"], index = rail.shapes_indexed(raw)
@@ -58,8 +65,11 @@ class StaticTimetable:
     """One operator's distilled timetable, loaded lazily, refreshed daily."""
 
     def __init__(self, hass: HomeAssistant, session: aiohttp.ClientSession,
-                 op: Operator) -> None:
+                 op: Operator, raw_source: Callable[[], bytes | None] | None = None) -> None:
         self._hass, self._session, self._op = hass, session, op
+        # A shared client that already downloads this zip (Renfe): the bytes come from
+        # it, never a second download (blocking; None until it has them).
+        self._raw_source = raw_source
         self._path = hass.config.path(".storage", f"saw_gtfs_{op.id}.json")
         self._data: dict[str, Any] | None = None
         self._loaded = False
@@ -141,10 +151,12 @@ class StaticTimetable:
             return self._data
         self._forced = False
         self._next_try = now + RETRY_S
+        if self._raw_source is not None:
+            return await self._async_from_source(now)
         try:
             async with self._session.get(
                 op.static_url, headers={"User-Agent": USER_AGENT, **(op.static_headers or {})},
-                timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT),
+                timeout=aiohttp.ClientTimeout(total=op.static_timeout_s),
             ) as resp:
                 if resp.status != 200:
                     _LOGGER.debug("%s timetable answered HTTP %s", op.id, resp.status)
@@ -169,4 +181,25 @@ class StaticTimetable:
         self._data = d
         _LOGGER.debug("%s timetable refreshed: %s stops, %s trips scheduled, feed_version %s",
                       op.id, len(d.get("stops", {})), len(d.get("sched", {})), d.get("feed_version"))
+        return self._data
+
+    async def _async_from_source(self, now: float) -> dict[str, Any] | None:
+        """The refresh from the shared client's copy of the zip. Never raises."""
+        op = self._op
+        try:
+            raw = await self._hass.async_add_executor_job(self._raw_source)
+            if raw is None:
+                # The client is still downloading it (36 s for Renfe's): soon, not in an hour.
+                self._next_try = now + SOURCE_WAIT_S
+                return self._data
+            d = await self._hass.async_add_executor_job(lambda: _distill(raw, op))
+            d["fetched_at"] = now
+            d["source"] = op.static_url
+            await self._hass.async_add_executor_job(self._write, d)
+        except Exception as err:  # noqa: BLE001 - a timetable never stops the map
+            _LOGGER.debug("%s timetable refresh failed: %s", op.id, type(err).__name__)
+            return self._data
+        self._data = d
+        _LOGGER.debug("%s timetable distilled from the shared client: %s trips scheduled",
+                      op.id, len(d.get("sched", {})))
         return self._data

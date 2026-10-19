@@ -369,8 +369,8 @@ class OperatorTests(unittest.TestCase):
 
     def test_other_operators_keep_the_defaults(self):
         for op in ops.OPERATORS.values():
-            if op.id == "vr_lahijunat":
-                continue
+            if op.id == "vr_lahijunat" or op.source == base.SOURCE_RENFE:
+                continue   # Renfe's operators: tests/test_renfe.py
             self.assertEqual(op.source, base.SOURCE_GTFS_RT, op.id)
             self.assertIsNone(op.parse_stops, op.id)
             self.assertIsNone(op.static_headers, op.id)

@@ -25,6 +25,10 @@ from ..const import OFF_RAIL_M
 # reads this integration's records and parse_stops their timetables.
 SOURCE_GTFS_RT = "gtfs_rt"
 SOURCE_DIGITRAFFIC = "digitraffic"
+# Renfe (Spain): the shared Renfe client (saw_livetrack.renfe, one poller per Home
+# Assistant) hands over a positions feed and a trip-updates feed already cut to this
+# integration's consumer; parse(feed) reads the positions as for GTFS_RT.
+SOURCE_RENFE = "renfe"
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,15 @@ class Operator:
     static_route_types: tuple[str, ...] | None = None
     # The largest timetable download accepted, in bytes.
     static_max_bytes: int = 20 * 1024 * 1024
+    # Seconds a timetable download may take (Renfe's 16 MB took 36 s, SSOT 10).
+    static_timeout_s: float = 60
+    # True: cut the timetable to the trips running the day before, on and after today
+    # before distilling (gtfs_filter.keep_service_window; Renfe's zip holds the whole
+    # season, 1.8 M stop times). False: by route_type only, as before.
+    static_window: bool = False
+    # With static_window: keep only routes whose route_id starts with one of these
+    # (Renfe: the network code). None: every route.
+    static_route_prefixes: tuple[str, ...] | None = None
     # (the timetable zip, as cut; the distilled timetable; {shape_id: [line index,
     # reversed]}) -> extra keys kept with the timetable under "extras", for decorate.
     static_extras: Callable[[Any, dict[str, Any], dict[str, list[int]]], dict[str, Any]] | None = None
@@ -81,6 +94,9 @@ class Operator:
     # Digitraffic: the consumer this operator registers with the shared client
     # ("commuter"; saw_livetrack.digitraffic_rail.CONSUMERS).
     digitraffic_consumer: str | None = None
+    # Renfe: the consumer this operator registers with the shared Renfe client
+    # ("commuter"; saw_livetrack.renfe.CONSUMERS).
+    renfe_consumer: str | None = None
     # Digitraffic: (records, the distilled timetable or None, now) -> (next_stops
     # {trip: (name, eta)}, trip_delays {trip: seconds}, extras {vehicle: keys added
     # to its published record, poll.apply_extras}).
@@ -114,4 +130,15 @@ REGIONS: dict[str, str] = {
     "US-WI": "United States — Wisconsin",
     "AU-QLD": "Australia — Queensland",
     "FI": "Finland",
+    "ES-AN": "Spain — Andalusia",
+    "ES-AR": "Spain — Aragon",
+    "ES-AS": "Spain — Asturias",
+    "ES-CB": "Spain — Cantabria",
+    "ES-CL": "Spain — Castile and León",
+    "ES-CT": "Spain — Catalonia",
+    "ES-GA": "Spain — Galicia",
+    "ES-MC": "Spain — Murcia",
+    "ES-MD": "Spain — Madrid",
+    "ES-PV": "Spain — Basque Country",
+    "ES-VC": "Spain — Valencian Community",
 }

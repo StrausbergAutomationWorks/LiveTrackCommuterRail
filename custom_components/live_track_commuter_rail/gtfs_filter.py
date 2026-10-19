@@ -20,6 +20,7 @@ from __future__ import annotations
 import csv
 import io
 import zipfile
+from datetime import date, datetime, timedelta, timezone
 from typing import Iterable
 
 
@@ -120,3 +121,141 @@ def keep_route_types(raw: bytes, route_types: Iterable[str]) -> bytes:
             else:
                 out.writestr(name, z.read(name))
     return buf.getvalue()
+
+
+# --- Renfe: the service window (SSOT 10) -------------------------------------------
+# Renfe's timetable is ONE zip for every network and every day of the season: measured on
+# the copy of 2026-10-16 (bin\\es_renfe_distill_cost.txt), 15,883,747 bytes, stop_times.txt
+# 277 MB unzipped, 1,831,932 rows, 133,481 trips; each service_id runs on ONE date. Cut by
+# route_type alone and distilled, it took 66 s and peaked at 930 MB of Python objects on
+# the laptop. The trips running the day before, on and after today are about 10,000
+# (5,076 on Monday 2026-10-19): cut to them first, and stop_times is read once, line by
+# line, keeping about one row in thirteen.
+
+_WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def _rows(z: zipfile.ZipFile, name: str):
+    """Stripped dict rows of a small file; nothing when absent."""
+    r = _reader(z, name)
+    if r is None:
+        return
+    _, keys, rd, fh = r
+    with fh:
+        for row in rd:
+            yield {k: (row[i].strip() if i < len(row) else "") for i, k in enumerate(keys)}
+
+
+def _agency_today(z: zipfile.ZipFile) -> date:
+    tz = ""
+    for r in _rows(z, "agency.txt"):
+        tz = r.get("agency_timezone", "")
+        break
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo(tz or "UTC")).date()
+    except Exception:  # noqa: BLE001 - an unknown zone name in a timetable
+        return datetime.now(timezone.utc).date()
+
+
+def services_on(z: zipfile.ZipFile, days: Iterable[date]) -> set[str] | None:
+    """service_ids running on any of `days` (calendar.txt, then calendar_dates.txt: 1
+    adds, 2 removes), or None when the zip has neither file (every trip runs)."""
+    cal = list(_rows(z, "calendar.txt"))
+    dates = list(_rows(z, "calendar_dates.txt"))
+    if not cal and not dates:
+        return None
+    on: set[str] = set()
+    for day in days:
+        wd, ymd = _WEEKDAYS[day.weekday()], day.strftime("%Y%m%d")
+        on |= {r["service_id"] for r in cal if r.get("service_id") and r.get(wd) == "1"
+               and r.get("start_date", "") <= ymd <= r.get("end_date", "")}
+        for r in dates:
+            if r.get("date") == ymd and r.get("service_id"):
+                if r.get("exception_type") == "1":
+                    on.add(r["service_id"])
+                elif r.get("exception_type") == "2":
+                    on.discard(r["service_id"])
+    return on
+
+
+def keep_service_window(raw: bytes, route_types: Iterable[str] | None = None,
+                        today: date | None = None,
+                        route_prefixes: Iterable[str] | None = None) -> bytes:
+    """The zip with only the trips running the day before, on, or after `today` (the
+    agency's date when None), on routes of `route_types` (every route when None) whose
+    route_id starts with one of `route_prefixes` (every route when None; Renfe's network
+    code); their stop times, stops (with parent stations) and shapes. routes.txt keeps
+    every such route (an operator's colours by line need them), calendars and the rest
+    are copied whole. Blocking."""
+    z = zipfile.ZipFile(io.BytesIO(raw))
+    names = z.namelist()
+    if today is None:
+        today = _agency_today(z)
+    on = services_on(z, [today + timedelta(days=d) for d in (-1, 0, 1)])
+    if route_types is None:
+        routes = _column(z, "routes.txt", "route_id")
+    else:
+        types = {str(t).strip() for t in route_types}
+        routes = _column(z, "routes.txt", "route_id", "route_type", types)
+    if route_prefixes is not None:
+        prefixes = tuple(str(p).strip() for p in route_prefixes)
+        routes = {r for r in routes if r.startswith(prefixes)}
+    trips: set[str] = set()
+    shapes: set[str] = set()
+    for r in _rows(z, "trips.txt"):
+        if r.get("route_id") in routes and (on is None or r.get("service_id") in on):
+            if r.get("trip_id"):
+                trips.add(r["trip_id"])
+            if r.get("shape_id"):
+                shapes.add(r["shape_id"])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as out:
+        used = _stop_times_for(z, out, trips) if "stop_times.txt" in names else set()
+        parents = _column(z, "stops.txt", "parent_station", "stop_id", used)
+        for name in names:
+            if name == "stop_times.txt":
+                continue
+            if name == "routes.txt":
+                _filter(z, out, name, "route_id", routes)
+            elif name == "trips.txt":
+                _filter(z, out, name, "trip_id", trips)
+            elif name == "stops.txt":
+                _filter(z, out, name, "stop_id", used | parents)
+            elif name == "shapes.txt":
+                _filter(z, out, name, "shape_id", shapes)
+            else:
+                out.writestr(name, z.read(name))
+    return buf.getvalue()
+
+
+def _stop_times_for(z: zipfile.ZipFile, out: zipfile.ZipFile, trips: set[str]) -> set[str]:
+    """Copy stop_times.txt keeping the rows of `trips`, reading it once line by line:
+    a line whose first character is not a quote is split on commas, others through csv.
+    Returns the stop_ids of the kept rows."""
+    used: set[str] = set()
+    with z.open("stop_times.txt") as fh:
+        text = io.TextIOWrapper(fh, encoding="utf-8-sig", newline="")
+        header = text.readline()
+        keys = [k.strip() for k in next(csv.reader([header]))]
+        if "trip_id" not in keys:
+            out.writestr("stop_times.txt", header + text.read())
+            return used
+        it, js = keys.index("trip_id"), (keys.index("stop_id") if "stop_id" in keys else None)
+        kept = [header if header.endswith("\n") else header + "\n"]
+        for line in text:
+            if it == 0 and '"' not in line:
+                # The trip_id alone, for the 12 rows in 13 that are dropped.
+                k = line.find(",")
+                if (line[:k] if k >= 0 else line).strip() not in trips:
+                    continue
+            elif not line.strip():
+                continue
+            cells = (next(csv.reader([line])) if '"' in line else line.rstrip("\r\n").split(","))
+            if len(cells) <= it or cells[it].strip() not in trips:
+                continue
+            kept.append(line if line.endswith("\n") else line + "\n")
+            if js is not None and len(cells) > js:
+                used.add(cells[js].strip())
+    out.writestr("stop_times.txt", "".join(kept))
+    return used
