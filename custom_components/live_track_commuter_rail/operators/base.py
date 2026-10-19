@@ -97,6 +97,10 @@ class Operator:
     # Renfe: the consumer this operator registers with the shared Renfe client
     # ("commuter"; saw_livetrack.renfe.CONSUMERS).
     renfe_consumer: str | None = None
+    # A feed of trip updates -> this operator's own, before anything reads them (Renfe:
+    # one feed for every network; the timetable check must count its own trips). None:
+    # the feed as fetched.
+    filter_trip_updates: Callable[[Any], Any] | None = None
     # Digitraffic: (records, the distilled timetable or None, now) -> (next_stops
     # {trip: (name, eta)}, trip_delays {trip: seconds}, extras {vehicle: keys added
     # to its published record, poll.apply_extras}).

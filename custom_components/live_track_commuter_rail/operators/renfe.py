@@ -1,5 +1,6 @@
 """Renfe Cercanias and Rodalies (Spain), one operator per network, on the shared Renfe
-client (saw_livetrack.renfe, saw-livetrack 0.2.9). No Home Assistant imports.
+client (saw_livetrack.renfe, saw-livetrack 0.2.9; from 0.2.10 it also holds a network
+missing from one batch). No Home Assistant imports.
 
 SSOT section 10. Measured on capture round 1 (Fri 2026-10-16 23:50 to Mon 10-19 08:43
 Spain time, 7,710 trips): 20_Research/ES_RENFE_CERCANIAS_FEED_20261016.md.
@@ -15,6 +16,11 @@ THE TRIP ID IS THE IDENTITY (entity.id is not: it repeats across networks). It n
 the network (its first two digits; 7,707 of 7,710 trips, the rest SPECIAL_... ones with
 no network, drawn by nobody), the train number and the line: 3087V23743C5 is Seville's
 train 23743 on C5. vehicle_id = trip_id, so an entity lasts one run.
+
+TRIP UPDATES are cut to the operator's networks too (filter_trip_updates): the client
+gives every entry every commuter network's updates, and the timetable check counts this
+entry's trips alone (on the box 2026-10-19, before the cut, Madrid read 64 of 158 and
+called its own timetable stale).
 
 THE LOOK (Lee 2026-10-16): the route's own colour from Renfe's timetable, per ROUTE, not
 per line: Murcia C2 is green or pink by route, Barcelona R1 light or dark blue
@@ -89,6 +95,23 @@ def make_parse(networks: frozenset[str]):
         return out
 
     return parse
+
+
+def make_trip_update_filter(networks: frozenset[str]):
+    """filter(trip_updates) for one operator: a feed of its networks' trip updates only,
+    the header copied."""
+
+    def keep(tu):
+        out = type(tu)()
+        out.header.CopyFrom(tu.header)
+        for ent in tu.entity:
+            # parse_trip_id strips; an entity with no trip update has no trip id, so no
+            # network (mutation 2026-10-19: both checks were redundant).
+            if parse_trip_id(ent.trip_update.trip.trip_id)[0] in networks:
+                out.entity.add().CopyFrom(ent)
+        return out
+
+    return keep
 
 
 def _colour(value: str | None) -> str | None:
@@ -223,6 +246,7 @@ def _operator(op_id: str, name: str, short: str, regions: tuple[str, ...],
         source=SOURCE_RENFE,
         renfe_consumer=COMMUTER,
         parse=make_parse(frozenset(networks)),
+        filter_trip_updates=make_trip_update_filter(frozenset(networks)),
         # The timetable from the client's own download (statics, raw_source); this URL
         # is what a refresh without the client would fetch.
         static_url="https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip",

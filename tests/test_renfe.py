@@ -399,6 +399,60 @@ class DecorateTests(unittest.TestCase):
             self.assertEqual(attrs[k], rec[k])
 
 
+def tu(trips, ts=1792310000):
+    fm = pb.FeedMessage()
+    fm.header.gtfs_realtime_version = "2.0"
+    fm.header.timestamp = ts
+    for trip in trips:
+        e = fm.entity.add()
+        e.id = "TUUPDATE_" + trip.strip()
+        e.trip_update.trip.trip_id = trip
+        s = e.trip_update.stop_time_update.add()
+        s.stop_id = "18000"
+        s.arrival.delay = 60
+    return fm
+
+
+class TripUpdateFilterTests(unittest.TestCase):
+    def test_own_networks_only(self):
+        got = MADRID.filter_trip_updates(tu(["1090L23743C5", "4190L84000C2", "SPECIAL_50_95224R4",
+                                             "9090L00001C9", " 1090L23744C5 "]))
+        self.assertEqual([e.trip_update.trip.trip_id for e in got.entity],
+                         ["1090L23743C5", "9090L00001C9", " 1090L23744C5 "])
+        self.assertEqual(got.header.timestamp, 1792310000)
+        self.assertEqual(got.entity[0].trip_update.stop_time_update[0].arrival.delay, 60)
+
+    def test_positions_and_empty_entities_dropped(self):
+        fm = tu(["1090L23743C5"])
+        e = fm.entity.add()
+        e.vehicle.trip.trip_id = "1090L23744C5"
+        fm.entity.add().id = "empty"
+        got = MADRID.filter_trip_updates(fm)
+        self.assertEqual([x.id for x in got.entity], ["TUUPDATE_1090L23743C5"])
+
+    def test_input_untouched(self):
+        fm = tu(["1090L23743C5", "4190L84000C2"])
+        MADRID.filter_trip_updates(fm)
+        self.assertEqual(len(fm.entity), 2)
+
+    def test_every_renfe_operator_its_own(self):
+        for op_id, _, _, _, nets in rn.NETWORKS:
+            got = ops.OPERATORS[op_id].filter_trip_updates(tu(["%s90L00001C1" % n for n in nets]
+                                                              + ["0090L00001C1"]))
+            self.assertEqual(len(got.entity), len(nets), op_id)
+
+    def test_the_coordinator_applies_it(self):
+        import os
+        src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "custom_components",
+                                "live_track_commuter_rail", "coordinator.py"), encoding="utf-8").read()
+        self.assertIn("if tu is not None and op.filter_trip_updates is not None:\n"
+                      "            # This entry's own trips only (Renfe: every network in one feed).\n"
+                      "            tu = op.filter_trip_updates(tu)\n", src)
+        # After both ways a Renfe entry gets its trip updates, before the first reader.
+        self.assertLess(src.index("feed, tu = got if got"), src.index("op.filter_trip_updates(tu)"))
+        self.assertLess(src.index("op.filter_trip_updates(tu)"), src.index("poll.drop_skipped(tu)"))
+
+
 class OperatorTests(unittest.TestCase):
     IDS = {"renfe_madrid", "renfe_asturias", "renfe_sevilla", "renfe_cadiz", "renfe_malaga",
            "renfe_valencia", "renfe_murcia_alicante", "renfe_cartagena", "renfe_ferrol",
@@ -420,6 +474,7 @@ class OperatorTests(unittest.TestCase):
     def test_settings(self):
         for op in self.renfe():
             self.assertEqual(op.renfe_consumer, "commuter", op.id)
+            self.assertIsNotNone(op.filter_trip_updates, op.id)
             self.assertTrue(op.static_window, op.id)
             self.assertEqual(op.static_route_types, ("2",), op.id)
             self.assertTrue(op.static_route_prefixes, op.id)
@@ -457,6 +512,7 @@ class OperatorTests(unittest.TestCase):
         for op in ops.OPERATORS.values():
             if op.source != base.SOURCE_RENFE:
                 self.assertIsNone(op.renfe_consumer, op.id)
+                self.assertIsNone(op.filter_trip_updates, op.id)
                 self.assertFalse(op.static_window, op.id)
                 self.assertIsNone(op.static_route_prefixes, op.id)
                 self.assertEqual(op.static_timeout_s, 60, op.id)

@@ -273,6 +273,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 tu = await fetch_feed(self._session, op.trip_updates_url, self._params)
             except AuthError:
                 tu = None
+        if tu is not None and op.filter_trip_updates is not None:
+            # This entry's own trips only (Renfe: every network in one feed).
+            tu = op.filter_trip_updates(tu)
         # Renfe's trip updates came with its positions (SOURCE_RENFE).
         if tu is not None:
             # A skipped stop is never the next stop (poll.drop_skipped).
