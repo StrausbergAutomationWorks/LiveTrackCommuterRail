@@ -186,6 +186,37 @@ class EarlyRefresh(unittest.TestCase):
         self.assertEqual(self.session.calls, 2)
         self.assertEqual(t.data["rail_shapes"], [])
 
+    def test_a_cache_without_trip_shapes_is_fetched_again(self):
+        # Written before 2026-10-20: no trip_shapes, so no train could follow its shape
+        # (shapepath) until the daily refresh. It is read as no cache at all.
+        import json as _json
+        path = os.path.join(self.tmp, ".storage", "saw_gtfs_metra.json")
+        with open(path, encoding="utf-8") as fh:
+            d = _json.load(fh)
+        self.assertEqual(d["trip_shapes"], {})
+        d.pop("trip_shapes")
+        with open(path, "w", encoding="utf-8") as fh:
+            _json.dump(d, fh)
+        t = statics.StaticTimetable(Hass(self.tmp), self.session, ops.OPERATORS["metra"])
+        asyncio.run(t.async_ensure())
+        self.assertEqual(self.session.calls, 2)
+        self.assertEqual(t.data["trip_shapes"], {})
+
+    def test_trip_shapes_are_kept_for_the_distilled_trips(self):
+        calls = []
+
+        def fake(raw, index, keep):
+            calls.append((index, keep))
+            return {"T": [0, 1]}
+        orig = statics.rail.trip_shapes
+        statics.rail.trip_shapes = fake
+        try:
+            d = statics._distill(_zip(), ops.OPERATORS["metra"])
+        finally:
+            statics.rail.trip_shapes = orig
+        self.assertEqual(d["trip_shapes"], {"T": [0, 1]})
+        self.assertEqual(calls, [({}, d.get("sched"))])
+
     def test_a_cache_with_route_lines_is_used(self):
         t = statics.StaticTimetable(Hass(self.tmp), self.session, ops.OPERATORS["metra"])
         asyncio.run(t.async_ensure())

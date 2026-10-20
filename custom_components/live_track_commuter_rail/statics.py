@@ -56,6 +56,8 @@ def _distill(raw: bytes, op: Operator) -> dict[str, Any]:
         raw = gtfs_filter.keep_route_types(raw, op.static_route_types)
     d = distill(raw, stop_times=op.static_stop_times)
     d["rail_shapes"], index = rail.shapes_indexed(raw)
+    # Each trip's own shape, for the way between two fixes (shapepath, D3c-v).
+    d["trip_shapes"] = rail.trip_shapes(raw, index, d.get("sched"))
     if op.static_extras is not None:
         d["extras"] = op.static_extras(zipfile.ZipFile(io.BytesIO(raw)), d, index)
     return d
@@ -127,7 +129,9 @@ class StaticTimetable:
             return None
         # A cache from before 2026-10-09 has no rail_shapes: fetched again, once.
         # An operator with extras needs them too (SE Queensland's look and arrow).
+        # One from before 2026-10-20 has no trip_shapes (shapepath): fetched again, once.
         return (d if isinstance(d, dict) and d.get("v") == STATIC_VERSION and "rail_shapes" in d
+                and "trip_shapes" in d
                 and (self._op.static_extras is None or "extras" in d)
                 else None)
 

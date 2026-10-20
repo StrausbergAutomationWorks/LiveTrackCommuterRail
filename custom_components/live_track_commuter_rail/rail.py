@@ -19,7 +19,7 @@ import json
 import math
 import os
 import zipfile
-from typing import Callable
+from typing import Any, Callable
 
 from saw_livetrack.rail import RailIndex
 
@@ -131,6 +131,25 @@ def shapes_indexed(raw: bytes) -> tuple[list[list[list[float]]], dict[str, list[
         index[sid] = [len(out), 0]
         out.append(q)
     return out, index
+
+
+def trip_shapes(raw: bytes, index: dict[str, list[int]],
+                keep: Any = None) -> dict[str, list[int]]:
+    """{trip_id: [line, reversed]} from trips.txt and shapes_indexed's index, for the
+    trips in `keep` (the distilled timetable's) or every trip when it is None. Ids
+    stripped (Renfe pads them, Metra writes a space after each comma). A trip without
+    a shape is left out. Blocking: run it in an executor."""
+    z = zipfile.ZipFile(io.BytesIO(raw))
+    if "trips.txt" not in z.namelist() or not index:
+        return {}
+    out: dict[str, list[int]] = {}
+    with z.open("trips.txt") as fh:
+        for r in csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8-sig")):
+            r = {(k or "").strip(): (v or "").strip() for k, v in r.items() if k}
+            tid, ix = r.get("trip_id"), index.get(r.get("shape_id", ""))
+            if tid and ix is not None and (keep is None or tid in keep):
+                out[tid] = [ix[0], ix[1]]
+    return out
 
 
 def shapes_from_zip(raw: bytes) -> list[list[list[float]]]:

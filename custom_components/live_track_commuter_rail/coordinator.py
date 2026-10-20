@@ -39,7 +39,7 @@ from .const import (
 from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.renfe import RenfeError
 from saw_livetrack.gtfs import Fleet, decode
-from . import poll, rail, tracknet, tunnel
+from . import poll, rail, shapepath, tracknet, tunnel
 from .operators import Operator
 from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_RENFE
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
@@ -316,7 +316,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         poll.decorate_all(result, observations, self._static.data, op.decorate)
         # Along the tracks from the last fix (D3c-v), after everything that moves or
         # replaces a position.
-        result["track_paths"] = poll.add_track_paths(result, self._track_path)
+        if self._track_path is not None:
+            result["track_paths"] = poll.add_track_paths(result, self._track_path)
+        else:
+            # No track network shipped: along each trip's own shape (shapepath; Lee
+            # 2026-10-20, "A train cannot exist off of the tracks").
+            result["track_paths"] = shapepath.add_shape_paths(result, observations,
+                                                              self._static.data)
         if self._push is not None:
             # A train dark in a tunnel is pushed along it on its own stop times, after the
             # paths from the fixes: it replaces the position and the path (D3d, SSOT 8.3).
