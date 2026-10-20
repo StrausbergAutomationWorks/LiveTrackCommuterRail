@@ -39,7 +39,7 @@ from .const import (
 from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.renfe import RenfeError
 from saw_livetrack.gtfs import Fleet, decode
-from . import poll, rail, shapepath, tracknet, tunnel
+from . import plausible, poll, rail, shapepath, tracknet, tunnel
 from .operators import Operator
 from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_RENFE
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
@@ -112,6 +112,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                            **({} if op.stall_m is None else {"stall_m": op.stall_m}))
         # Renfe (Spain, SSOT 10): the ONE shared client per Home Assistant, registered
         # as this operator's consumer; it also hands over its copy of the timetable.
+        # Renfe's fixes bounce back and forth and onto other lines (plausible.py).
+        self._plausible = plausible.Plausible() if op.plausible else None
         self._renfe = None
         if op.source == SOURCE_RENFE:
             self._renfe = get_shared_renfe_client(hass, op.renfe_consumer)
@@ -174,6 +176,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def timetable(self) -> dict[str, Any] | None:
         return self._static.info
+
+    @property
+    def plausible_stats(self) -> dict[str, int] | None:
+        """Fixes refused and runs confirmed since start (plausible.py); None when off."""
+        p = self._plausible
+        return None if p is None else {"refused": p.refused, "confirmed": p.confirmed,
+                                       "placeholders": p.placeholders}
 
     @property
     def renfe_stats(self) -> dict[str, Any] | None:
@@ -302,6 +311,11 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # A fix older than the operator's limit is refused before Fleet sees it
         # (poll.fresh_only; SE Queensland's frozen fixes, SSOT 9.1).
         observations, stale = poll.fresh_only(op.parse(feed), now, op.max_fix_age_s)
+        if self._plausible is not None:
+            # Off the trip's own line, back along it or too fast: the last good fix.
+            observations = self._plausible.filter(
+                observations, self._static.data, now,
+                untrusted=op.untrusted_fixes(feed) if op.untrusted_fixes is not None else ())
         result = self.fleet.update(
             observations, now,
             show_parked=self._show_parked, delays=delays, next_stops=next_stops,
@@ -314,6 +328,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # The operator's own touches after Fleet (SE Queensland: look, label, lateness
         # and the arrow, from the timetable; poll.decorate_all).
         poll.decorate_all(result, observations, self._static.data, op.decorate)
+        if self._plausible is not None:
+            # The arrow the way the trip's stops run, not the shape's order (C16).
+            self._plausible.apply_arrows(result, observations, self._static.data)
         # Along the tracks from the last fix (D3c-v), after everything that moves or
         # replaces a position.
         if self._track_path is not None:

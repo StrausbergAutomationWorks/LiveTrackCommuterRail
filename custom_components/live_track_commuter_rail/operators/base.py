@@ -101,6 +101,12 @@ class Operator:
     # one feed for every network; the timetable check must count its own trips). None:
     # the feed as fetched.
     filter_trip_updates: Callable[[Any], Any] | None = None
+    # Refuse a fix off the trip's own shape, back along it or too fast forward, and point
+    # the arrow the way the trip's stops run (plausible.py; Renfe, whose feed bounces).
+    plausible: bool = False
+    # The vehicle ids whose fix in this feed is a placeholder, not a position (Renfe:
+    # INCOMING_AT rows sit at or past the next stop); plausible.py holds them.
+    untrusted_fixes: Callable[[Any], set] | None = None
     # Digitraffic: (records, the distilled timetable or None, now) -> (next_stops
     # {trip: (name, eta)}, trip_delays {trip: seconds}, extras {vehicle: keys added
     # to its published record, poll.apply_extras}).

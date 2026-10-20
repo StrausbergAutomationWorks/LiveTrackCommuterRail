@@ -97,6 +97,23 @@ def make_parse(networks: frozenset[str]):
     return parse
 
 
+def incoming_ids(feed) -> set:
+    """The trips whose row in this positions feed is INCOMING_AT (GTFS-RT current_status 0):
+    Renfe puts such a row at or past the next stop, not where the train is (MEASURED, capture
+    round 1: p50 1.6 km, p90 7.2 km ahead of the trip's next row; plausible.py holds them)."""
+    out = set()
+    for ent in feed.entity:
+        if not ent.HasField("vehicle"):
+            continue
+        v = ent.vehicle
+        # Unset, current_status is IN_TRANSIT_TO (the proto's default): never a placeholder.
+        if v.current_status == 0:
+            trip = (v.trip.trip_id or "").strip()
+            if trip:
+                out.add(trip)
+    return out
+
+
 def make_trip_update_filter(networks: frozenset[str]):
     """filter(trip_updates) for one operator: a feed of its networks' trip updates only,
     the header copied."""
@@ -247,6 +264,8 @@ def _operator(op_id: str, name: str, short: str, regions: tuple[str, ...],
         renfe_consumer=COMMUTER,
         parse=make_parse(frozenset(networks)),
         filter_trip_updates=make_trip_update_filter(frozenset(networks)),
+        plausible=True,
+        untrusted_fixes=incoming_ids,
         # The timetable from the client's own download (statics, raw_source); this URL
         # is what a refresh without the client would fetch.
         static_url="https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip",
