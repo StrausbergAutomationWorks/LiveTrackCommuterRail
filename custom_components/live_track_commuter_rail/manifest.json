@@ -5,6 +5,12 @@
     "@LeeS773-prog"
   ],
   "config_flow": true,
+  "dependencies": [
+    "http"
+  ],
+  "after_dependencies": [
+    "lovelace"
+  ],
   "documentation": "https://github.com/StrausbergAutomationWorks/LiveTrackCommuterRail",
   "integration_type": "service",
   "iot_class": "cloud_polling",
