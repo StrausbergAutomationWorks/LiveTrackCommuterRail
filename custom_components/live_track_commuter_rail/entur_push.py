@@ -4,7 +4,8 @@
 Lee 2026-11-07 18:10 (for Norway): "the long tunnels around Oslo should be handled like the tunnel in Helsinki. Hold a
 frozen train once its next stop's estimate has passed." The tunnels and the rule that finds one are saw_livetrack's
 (entur.TUNNELS, tunnel_at, tunnel_time; saw-livetrack 0.2.28, hoisted from Live Track Intercity Rail, which measured
-them on the capture of 2026-11-07).
+them on the capture of 2026-11-07). Ulriken (Bergen-Arna, L4) since saw-livetrack 0.2.30 (Lee 2026-11-08), which is
+why the manifest asks for it.
 
 WHEN: a train in service whose fix is FROZEN (older than FROZEN_S: Entur keeps a fix's time while it has no newer one)
 and, between the stop it left and its next by the timetable with its delay, lies at a tunnel's way in going the
