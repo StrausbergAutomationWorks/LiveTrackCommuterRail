@@ -21,7 +21,7 @@ import csv
 import io
 import zipfile
 from datetime import date, datetime, timedelta, timezone
-from typing import Iterable
+from typing import Callable, Iterable
 
 
 def _reader(z: zipfile.ZipFile, name: str):
@@ -181,11 +181,13 @@ def services_on(z: zipfile.ZipFile, days: Iterable[date]) -> set[str] | None:
 
 def keep_service_window(raw: bytes, route_types: Iterable[str] | None = None,
                         today: date | None = None,
-                        route_prefixes: Iterable[str] | None = None) -> bytes:
+                        route_prefixes: Iterable[str] | None = None,
+                        route_keep: Callable[[dict[str, str]], bool] | None = None) -> bytes:
     """The zip with only the trips running the day before, on, or after `today` (the
     agency's date when None), on routes of `route_types` (every route when None) whose
     route_id starts with one of `route_prefixes` (every route when None; Renfe's network
-    code); their stop times, stops (with parent stations) and shapes. routes.txt keeps
+    code) and that `route_keep` accepts (a routes.txt row as a stripped dict; every route when None:
+    Norway's L lines, SSOT 12); their stop times, stops (with parent stations) and shapes. routes.txt keeps
     every such route (an operator's colours by line need them), calendars and the rest
     are copied whole. Blocking."""
     z = zipfile.ZipFile(io.BytesIO(raw))
@@ -201,6 +203,8 @@ def keep_service_window(raw: bytes, route_types: Iterable[str] | None = None,
     if route_prefixes is not None:
         prefixes = tuple(str(p).strip() for p in route_prefixes)
         routes = {r for r in routes if r.startswith(prefixes)}
+    if route_keep is not None:
+        routes &= {r["route_id"] for r in _rows(z, "routes.txt") if r.get("route_id") and route_keep(r)}
     trips: set[str] = set()
     shapes: set[str] = set()
     for r in _rows(z, "trips.txt"):

@@ -15,6 +15,9 @@ the railroads it reads. It is original work, MIT-licensed.
 | South Shore Line (NICTD) | Chicago to South Bend (Illinois, Indiana) | No | Public feed published for NICTD by ETA SPOT |
 | Queensland Rail Citytrain | SE Queensland (Australia) | No | [Translink open data](https://translink.com.au/about-translink/open-data); data CC BY 4.0, credit Translink |
 | VR lähijunat (VR and HSL commuter trains) | Finland | No | [Fintraffic Digitraffic](https://www.digitraffic.fi/en/railway-traffic/); data CC BY 4.0, credit Fintraffic / digitraffic.fi |
+| Vy (L1, L2, L4) | Norway: Oslo area, Bergen | No | [Entur open data](https://developer.entur.org); data under the [NLOD 2.0](https://data.norge.no/nlod/en/2.0), distributed by Entur |
+| Go-Ahead Norge (L5 Jærbanen) | Norway: Stavanger to Egersund | No | as Vy |
+| Flytoget (FLY1, FLY2) | Norway: Drammen and Stabekk to Oslo Airport | No | as Vy |
 
 Read each railroad's terms before you use its data; they bind you, as the
 person receiving it.
@@ -110,6 +113,22 @@ equipment.
   as before.
   Off track is more than 1 km from every commuter line in Digitraffic's own
   timetable.
+* **Norway** (Vy, Go-Ahead Norge, Flytoget), from Entur through one client shared
+  with Live Track Intercity Rail, which draws Norway's F, RE, RX and R lines:
+  the label is the line code (L1, FLY1), the train number and the line's name
+  are in the hover box. An L line wears its timetable colour, filled with a
+  white ring leaving Oslo S (Bergen on L4, Stavanger on L5) and swapped going
+  to it. Flytoget is grey with an orange ring going to Oslo Airport and orange
+  with a grey ring leaving it. Late from 4 minutes, very late from 8. Entur
+  publishes no speed and no heading, so the arrow follows the train's own
+  line. In Oslo's long tunnels (Oslotunnelen, Lysaker-Sandvika,
+  Sandvika-Asker, Romeriksporten, Lieråsen, Follobanen) a train whose position
+  stops coming is moved along its line to where positions come back, in the
+  quickest time measured, as `position_source: estimated`. Flytoget's own
+  timetable draws straight lines between stations, so its line ships in
+  `rail/flytoget_lines.json.gz`, cut from Vy's timetable shapes over the same
+  track by `tools/build_flytoget_lines.py` (data NLOD 2.0, distributed by
+  Entur; modified).
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

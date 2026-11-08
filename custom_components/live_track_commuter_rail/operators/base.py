@@ -29,6 +29,10 @@ SOURCE_DIGITRAFFIC = "digitraffic"
 # Assistant) hands over a positions feed and a trip-updates feed already cut to this
 # integration's consumer; parse(feed) reads the positions as for GTFS_RT.
 SOURCE_RENFE = "renfe"
+# Entur (Norway, SSOT 12): the shared Entur client (saw_livetrack.entur, one poller per Home Assistant per codespace)
+# hands over a positions feed and a trip-updates feed already cut to this integration's consumer and the operator's
+# codespace; parse(feed) reads the positions as for GTFS_RT.
+SOURCE_ENTUR = "entur"
 
 
 @dataclass(frozen=True)
@@ -97,6 +101,25 @@ class Operator:
     # Renfe: the consumer this operator registers with the shared Renfe client
     # ("commuter"; saw_livetrack.renfe.CONSUMERS).
     renfe_consumer: str | None = None
+    # Entur: the consumer ("commuter") and codespace ("VYG", "GOA", "FLT") this operator registers with the shared
+    # Entur client (saw_livetrack.entur.CONSUMERS, CODESPACES).
+    entur_consumer: str | None = None
+    entur_codespace: str | None = None
+    # Entur: trains pushed through Oslo's tunnels where their fixes freeze (entur_push.py, D3d).
+    entur_push: bool = False
+    # With static_window: keep only the routes this accepts (a routes.txt row as a dict; Norway's L lines). None:
+    # every route.
+    static_route_keep: Callable[[dict[str, str]], bool] | None = None
+    # The cut timetable zip -> the zip distilled (Flytoget: its straight shapes replaced by the shipped line). None:
+    # as cut.
+    static_rewrite: Callable[[bytes], bytes] | None = None
+    # (observations, the distilled timetable or None, now) -> the observations kept, after fresh_only (Norway: a
+    # finished run's train still in the feed). None: all.
+    obs_filter: Callable[[list[Obs], dict[str, Any] | None, float], list[Obs]] | None = None
+    # (trip updates, the distilled timetable or None, now) -> (next_stops {trip: (name, eta)}, trip_delays {trip:
+    # seconds}), in place of saw_livetrack's next_stops and stop_delays (Norway: Entur's updates list every stop with
+    # delays only, so the generic rule took the origin). None: the generic rule.
+    stops_from_updates: Callable[[Any, dict[str, Any] | None, float], tuple[dict, dict]] | None = None
     # A feed of trip updates -> this operator's own, before anything reads them (Renfe:
     # one feed for every network; the timetable check must count its own trips). None:
     # the feed as fetched.
@@ -151,4 +174,5 @@ REGIONS: dict[str, str] = {
     "ES-MD": "Spain — Madrid",
     "ES-PV": "Spain — Basque Country",
     "ES-VC": "Spain — Valencian Community",
+    "NO": "Norway",
 }

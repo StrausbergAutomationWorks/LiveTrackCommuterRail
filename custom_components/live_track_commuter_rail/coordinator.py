@@ -38,12 +38,14 @@ from .const import (
 )
 from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.renfe import RenfeError
+from saw_livetrack.entur import EnturError
 from saw_livetrack.gtfs import Fleet, decode
-from . import plausible, poll, rail, shapepath, tracknet, tunnel
+from . import entur_push, plausible, poll, rail, shapepath, tracknet, tunnel
 from .operators import Operator
-from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_RENFE
+from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_RENFE
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
+from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
 from .schedule import timetable_stale
@@ -117,9 +119,19 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._renfe = None
         if op.source == SOURCE_RENFE:
             self._renfe = get_shared_renfe_client(hass, op.renfe_consumer)
-        self._static = StaticTimetable(
-            hass, self._session, op,
-            raw_source=self._renfe.static_zip if self._renfe is not None else None)
+        # Entur (Norway, SSOT 12): the ONE shared client per Home Assistant, this operator's (consumer, codespace)
+        # claimed; its timetable is the client's copy on disk (Vy's is 66 MB), read only when it is distilled.
+        self._entur = None
+        if op.source == SOURCE_ENTUR:
+            self._entur = get_shared_entur_client(hass, op.entur_consumer, op.entur_codespace)
+        raw_source = None
+        if self._renfe is not None:
+            raw_source = self._renfe.static_zip
+        elif self._entur is not None:
+            raw_source = self._entur_zip
+        self._static = StaticTimetable(hass, self._session, op, raw_source=raw_source)
+        # Trains pushed through Oslo's tunnels where their fixes freeze (entur_push.py).
+        self._entur_push = entur_push.EnturPush() if op.entur_push else None
         self._failures = 0
         self._last_good: dict[str, Any] | None = None
         self.feed_timestamp: int | None = None
@@ -148,6 +160,36 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._renfe is not None:
             self._renfe = None
             release_shared_renfe_client(self.hass, self.operator.renfe_consumer)
+        if self._entur is not None:
+            self._entur = None
+            release_shared_entur_client(self.hass, self.operator.entur_consumer,
+                                        self.operator.entur_codespace)
+
+    def _entur_zip(self) -> bytes | None:
+        """The shared Entur client's timetable zip for this operator's codespace, or None before it has one
+        (blocking: the executor; StaticTimetable asks again in SOURCE_WAIT_S)."""
+        client = self._entur
+        path = client.static_path(self.operator.entur_codespace) if client is not None else None
+        if path is None:
+            return None
+        with open(path, "rb") as fh:
+            return fh.read()
+
+    async def _fetch_entur(self):
+        """(positions, trip updates) for this operator's consumer and codespace from the shared Entur client
+        (blocking: the executor), or None on a failed fetch. Only the exception's TYPE is logged."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(
+                self._entur.for_consumer, op.entur_consumer, op.entur_codespace)
+        except EnturError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
+
+    @property
+    def entur_stats(self) -> dict[str, Any] | None:
+        """The shared Entur client's counters, for diagnostics; None for other sources."""
+        return self._entur.stats() if self._entur is not None else None
 
     async def _fetch_renfe(self):
         """(positions, trip updates) for this operator's consumer from the shared Renfe
@@ -217,6 +259,10 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if op.source == SOURCE_RENFE:
             # Both feeds at once, already cut to this integration's consumer.
             got = await self._fetch_renfe()
+            feed, tu = got if got is not None else (None, None)
+        elif op.source == SOURCE_ENTUR:
+            # Both feeds, already cut to this consumer and codespace (trip updates None when that file failed).
+            got = await self._fetch_entur()
             feed, tu = got if got is not None else (None, None)
         elif op.source == SOURCE_DIGITRAFFIC:
             # The client's records stand in for a feed: parse(records) reads them.
@@ -298,6 +344,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self._static.data is not None:
                 self._check_timetable(*trip_coverage(tu, self._static.data))
                 next_stops = next_stops_from(tu, self._static.data, now)
+            if op.stops_from_updates is not None:
+                # Norway: from the timetable plus the update's delays, never the origin.
+                next_stops, trip_delays = op.stops_from_updates(tu, self._static.data, now)
 
         extras = None
         if op.parse_stops is not None:
@@ -311,6 +360,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # A fix older than the operator's limit is refused before Fleet sees it
         # (poll.fresh_only; SE Queensland's frozen fixes, SSOT 9.1).
         observations, stale = poll.fresh_only(op.parse(feed), now, op.max_fix_age_s)
+        if op.obs_filter is not None:
+            # The operator's own refusals (Norway: a finished run's train still in the feed).
+            observations = op.obs_filter(observations, self._static.data, now)
         if self._plausible is not None:
             # Off the trip's own line, back along it or too fast: the last good fix.
             observations = self._plausible.filter(
@@ -347,5 +399,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             counts = self._push.apply(result, observations, op.tunnel_clocks(feed), now,
                                       names)
             result["estimated"] = counts[tunnel.ESTIMATED]
+        if self._entur_push is not None:
+            # Norway: a frozen fix at one of Oslo's tunnels is pushed through it; elsewhere it is held (D3d).
+            result["estimated"] = self._entur_push.apply(result, observations, self._static.data, now)
         self._last_good = result
         return result

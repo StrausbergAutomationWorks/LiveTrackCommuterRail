@@ -57,7 +57,8 @@ from .const import (
 )
 from .coordinator import AuthError, fetch_feed
 from .operators import OPERATORS, Operator, operators_in, regions_in_use
-from .operators.base import SOURCE_DIGITRAFFIC
+from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR
+from saw_livetrack.entur import CLIENT_NAME as ENTUR_CLIENT_NAME
 
 _KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
@@ -82,10 +83,25 @@ async def _check_digitraffic(hass, op: Operator) -> str | None:
         return "cannot_connect"
 
 
+async def _check_entur(hass, op: Operator) -> str | None:
+    """One GET of the trip updates the shared Entur client reads (keyless): None on HTTP 200, else an error code.
+    Entur asks every request to name its client (ET-Client-Name, the shared client's one name)."""
+    headers = {"User-Agent": USER_AGENT, "ET-Client-Name": ENTUR_CLIENT_NAME}
+    try:
+        async with async_get_clientsession(hass).get(
+            op.positions_url, headers=headers,
+            timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)) as resp:
+            return None if resp.status == 200 else "cannot_connect"
+    except (aiohttp.ClientError, TimeoutError):
+        return "cannot_connect"
+
+
 async def _check_key(hass, op: Operator, key: str) -> str | None:
     """None when the operator accepts the key, else an error code."""
     if op.source == SOURCE_DIGITRAFFIC:
         return await _check_digitraffic(hass, op)
+    if op.source == SOURCE_ENTUR:
+        return await _check_entur(hass, op)
     params = {op.key_param: key} if op.needs_key else None
     try:
         feed = await fetch_feed(async_get_clientsession(hass), op.positions_url, params)

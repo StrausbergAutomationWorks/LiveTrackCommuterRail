@@ -51,9 +51,13 @@ def _distill(raw: bytes, op: Operator) -> dict[str, Any]:
         # operator's own network first. MEASURED on the laptop: cut by route_type alone
         # it took 66 s and peaked at 930 MB; cut to the window 27 s and 104 MB.
         raw = gtfs_filter.keep_service_window(raw, op.static_route_types,
-                                              route_prefixes=op.static_route_prefixes)
+                                              route_prefixes=op.static_route_prefixes,
+                                              route_keep=op.static_route_keep)
     elif op.static_route_types:
         raw = gtfs_filter.keep_route_types(raw, op.static_route_types)
+    if op.static_rewrite is not None:
+        # Flytoget (SSOT 12): its straight-line shapes replaced by the shipped line before anything reads them.
+        raw = op.static_rewrite(raw)
     d = distill(raw, stop_times=op.static_stop_times)
     d["rail_shapes"], index = rail.shapes_indexed(raw)
     # Each trip's own shape, for the way between two fixes (shapepath, D3c-v).

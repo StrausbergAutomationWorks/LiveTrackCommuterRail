@@ -205,14 +205,15 @@ class RegistryTests(unittest.TestCase):
                                               "renfe_murcia_alicante", "renfe_cartagena",
                                               "renfe_ferrol", "renfe_leon", "renfe_barcelona",
                                               "renfe_bilbao", "renfe_san_sebastian",
-                                              "renfe_cantabria", "renfe_zaragoza"})
+                                              "renfe_cantabria", "renfe_zaragoza",
+                                              "vy", "go_ahead_norge", "flytoget"})
 
     def test_every_region_has_a_label_and_the_list_is_sorted(self):
         regions = ops.regions_in_use()
         self.assertEqual(list(regions.values()), sorted(regions.values()))
         self.assertEqual(set(regions), {"US-IL", "US-IN", "US-WI", "AU-QLD", "FI",
                                         "ES-AN", "ES-AR", "ES-AS", "ES-CB", "ES-CL", "ES-CT",
-                                        "ES-GA", "ES-MC", "ES-MD", "ES-PV", "ES-VC"})
+                                        "ES-GA", "ES-MC", "ES-MD", "ES-PV", "ES-VC", "NO"})
 
     def test_operators_in_region(self):
         self.assertEqual([o.id for o in ops.operators_in("US-IL")], ["metra", "nictd"])

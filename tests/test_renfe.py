@@ -510,6 +510,8 @@ class OperatorTests(unittest.TestCase):
 
     def test_other_sources_unchanged(self):
         for op in ops.OPERATORS.values():
+            if op.source == base.SOURCE_ENTUR:
+                continue   # Norway's operators cut by window too: tests/test_norway.py
             if op.source != base.SOURCE_RENFE:
                 self.assertIsNone(op.renfe_consumer, op.id)
                 self.assertIsNone(op.filter_trip_updates, op.id)
