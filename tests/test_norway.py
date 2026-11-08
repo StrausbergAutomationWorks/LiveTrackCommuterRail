@@ -238,10 +238,11 @@ class DirectionTests(Base):
         to = fly.look(None, True)
         away = fly.look(None, False)
         self.assertEqual((to["marker_color"], to["marker_ring_color"], to["marker_label_color"]),
-                         ("#7C7B7B", "#EE7203", "#EE7203"))
+                         ("#7C7B7B", "#EE7203", "#FFFFFF"))
         self.assertEqual((away["marker_color"], away["marker_ring_color"], away["marker_label_color"]),
-                         ("#EE7203", "#7C7B7B", "#7C7B7B"))
+                         ("#EE7203", "#7C7B7B", "#FFFFFF"))   # Lee 13:03: white letters both ways
         self.assertEqual(fly.look("#123456", None)["marker_color"], "#EE7203")
+        self.assertEqual(fly.look("#123456", None)["marker_label_color"], "#FFFFFF")
         self.assertEqual((to["marker_arrow_color"], to["marker_arrow_outline_color"]), ("#7C7B7B", "#EE7203"))
 
 

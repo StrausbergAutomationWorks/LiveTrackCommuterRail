@@ -7,7 +7,8 @@ lateness: operators/norway.py.
 THE LOOK (Lee 2026-11-08: "Leaving Oslo = Grey fill, Orange ring, Orange numbers/letters. Leaving Oslo Airport =
 Orange fill, Grey ring, Grey numbers/letters"): going TO Oslo lufthavn, grey fill with an orange ring and label; going
 away from it, orange fill with a grey ring and label. Read as: the hub is the airport (SSOT 12, decision 2). Direction
-unknown: away. The colours were read from a logo site (whatthelogo.com), not from a Flytoget style guide.
+unknown: away. Lee 2026-11-08 13:03: "Flytoget needs its letters/numbers to be white": the label is white both ways;
+fill, ring and arrow as before. The colours were read from a logo site (whatthelogo.com), not from a Flytoget style guide.
 
 THE LINE (Lee 2026-11-08, decision 3): Flytoget's own shapes are straight lines (35 shapes, 121 points), so each is
 REWRITTEN before distilling from rail/flytoget_lines.json.gz, built by tools/build_flytoget_lines.py from Vy's
@@ -27,7 +28,7 @@ from typing import Any
 
 from saw_livetrack.entur import FLYTOGET as CODESPACE
 
-from .norway import RING_WIDTH, keep_all, make_operator
+from .norway import RING_WIDTH, WHITE, keep_all, make_operator
 
 GREY = "#7C7B7B"
 ORANGE = "#EE7203"
@@ -52,7 +53,7 @@ def load_pairs(path: str = LINES_FILE) -> dict[str, list]:
 def look(colour: str | None, toward: bool | None) -> dict[str, Any]:
     fill, other = (GREY, ORANGE) if toward is True else (ORANGE, GREY)
     return {"marker_color": fill, "marker_ring_color": other, "marker_ring_width": RING_WIDTH,
-            "marker_label_color": other, "marker_label_outline_color": "none",
+            "marker_label_color": WHITE, "marker_label_outline_color": "none",
             "marker_arrow_color": fill, "marker_arrow_outline_color": other}
 
 
