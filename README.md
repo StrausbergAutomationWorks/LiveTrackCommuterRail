@@ -18,6 +18,9 @@ the railroads it reads. It is original work, MIT-licensed.
 | Vy (L1, L2, L4) | Norway: Oslo area, Bergen | No | [Entur open data](https://developer.entur.org); data under the [NLOD 2.0](https://data.norge.no/nlod/en/2.0), distributed by Entur |
 | Go-Ahead Norge (L5 Jærbanen) | Norway: Stavanger to Egersund | No | as Vy |
 | Flytoget (FLY1, FLY2) | Norway: Drammen and Stabekk to Oslo Airport | No | as Vy |
+| SL Pendeltåg | Sweden: Stockholm area, to Uppsala, Bålsta, Gnesta and Nynäshamn | Yes, your own, free: register at [data.trafikverket.se](https://data.trafikverket.se/oauth2/Account/register) | [Trafikverket open data](https://data.trafikverket.se); data [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Västtågen pendeltåg | Sweden: Göteborg to Kungsbacka, Älvängen, Floda and Alingsås | Yes, as SL Pendeltåg (one key serves every Swedish railroad) | as SL Pendeltåg |
+| Arlanda Express | Sweden: Stockholm C to Arlanda Airport | Yes, as SL Pendeltåg | as SL Pendeltåg |
 
 Read each railroad's terms before you use its data; they bind you, as the
 person receiving it.
@@ -129,6 +132,24 @@ equipment.
   `rail/flytoget_lines.json.gz`, cut from Vy's timetable shapes over the same
   track by `tools/build_flytoget_lines.py` (data NLOD 2.0, distributed by
   Entur; modified).
+* **Sweden** (SL Pendeltåg, Västtågen's pendeltåg, Arlanda Express), from
+  Trafikverket's open API through one client shared with Live Track Intercity
+  Rail, which draws Sweden's other trains; each user brings Trafikverket's free
+  key. A train is a run, `<train number>-<day of its date>`, labelled with its
+  train number; the brand, number and end stations are in the hover box. SL
+  Pendeltåg is pink with a white ring and number, Västtågen light blue with a
+  dark blue ring and number, Arlanda Express yellow with black; each swaps its
+  colours going toward Stockholm C (Stockholm City for the pendeltåg) or, on a
+  trip that calls at neither, its larger end city. Late from 3 minutes on SL
+  Pendeltåg (Region Stockholm counts a pendeltåg punctual within 3 minutes),
+  very late from 6; late from 6 and very late from 12 on the other two
+  (Trafikverket's rule). Sweden publishes no route shapes, so each station
+  pair's line ships in `rail/sweden_lines.json.gz`, routed once on
+  OpenStreetMap's track by `tools/sweden_lines.py` ((c) OpenStreetMap
+  contributors, ODbL 1.0); a train slides along its trip's line between
+  positions, and a position more than 1 km from it is refused.
+  `rail/sweden_ends.json` holds the end cities' populations (Statistics
+  Sweden, CC0).
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

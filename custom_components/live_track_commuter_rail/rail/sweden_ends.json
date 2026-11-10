@@ -1,0 +1,182 @@
+{
+"about": "Every Swedish Trafikverket station (signature) and the Statistics Sweden statistical urban area (tätort) it stands in, with its population: the hub rule for the look (Lee 2026-11-08, Intercity SSOT 8.9 decision 6: Stockholm C, else the trip's larger end city). Placed by point in polygon; a station outside every tätort takes the nearest within 1,500 m (off_m), else none (population null; the trip's other end decides).",
+"cut": "cut by tools/sweden_lines.py ends to the signatures Live Track Commuter Rail's Swedish trips start or end at, and the hubs",
+"ends": {
+"A": {
+"name": "Alingsås",
+"population": 27895,
+"settlement": "Alingsås",
+"tatort": "1489TC106"
+},
+"Arnn": {
+"name": "Arlanda N",
+"population": null,
+"settlement": null,
+"tatort": null
+},
+"Bhs": {
+"name": "Bohus",
+"off_m": 694,
+"population": 6530,
+"settlement": "Surte",
+"tatort": "1440TB105"
+},
+"Bro": {
+"name": "Bro",
+"population": 9440,
+"settlement": "Bro",
+"tatort": "0139TB101"
+},
+"Bål": {
+"name": "Bålsta",
+"population": 16205,
+"settlement": "Bålsta",
+"tatort": "0305TC101"
+},
+"Cst": {
+"name": "Stockholm C",
+"population": 1652895,
+"settlement": "Stockholm",
+"tatort": "0180TC101"
+},
+"Fd": {
+"name": "Floda",
+"population": 28789,
+"settlement": "Lerum",
+"tatort": "1441TC106"
+},
+"G": {
+"name": "Göteborg C",
+"population": 674529,
+"settlement": "Göteborg",
+"tatort": "1480TC108"
+},
+"Gn": {
+"name": "Gnesta",
+"population": 6472,
+"settlement": "Gnesta",
+"tatort": "0461TC102"
+},
+"Hnd": {
+"name": "Handen",
+"population": 1652895,
+"settlement": "Stockholm",
+"tatort": "0180TC101"
+},
+"Jn": {
+"name": "Järna",
+"population": 6110,
+"settlement": "Järna",
+"tatort": "0181TB103"
+},
+"Kb": {
+"name": "Kungsbacka",
+"population": 674529,
+"settlement": "Göteborg",
+"tatort": "1480TC108"
+},
+"Khä": {
+"name": "Kallhäll",
+"population": 1652895,
+"settlement": "Stockholm",
+"tatort": "0180TC101"
+},
+"Kän": {
+"name": "Kungsängen",
+"population": 16899,
+"settlement": "Kungsängen och Brunna",
+"tatort": "0139TC104"
+},
+"Lis": {
+"name": "Liseberg",
+"population": 674529,
+"settlement": "Göteborg",
+"tatort": "1480TC108"
+},
+"Mdn": {
+"name": "Mölndal",
+"population": 674529,
+"settlement": "Göteborg",
+"tatort": "1480TC108"
+},
+"Mr": {
+"name": "Märsta",
+"population": 30576,
+"settlement": "Märsta",
+"tatort": "0191TC102"
+},
+"Nyc": {
+"name": "Nynäshamn",
+"population": 16447,
+"settlement": "Nynäshamn",
+"tatort": "0192TC103"
+},
+"Sci": {
+"name": "Stockholm City",
+"population": 1652895,
+"settlement": "Stockholm",
+"tatort": "0180TC101"
+},
+"So": {
+"name": "Solna",
+"population": 1652895,
+"settlement": "Stockholm",
+"tatort": "0180TC101"
+},
+"Sue": {
+"name": "Surte",
+"population": 6530,
+"settlement": "Surte",
+"tatort": "1440TB105"
+},
+"Söc": {
+"name": "Södertälje Centrum",
+"population": 78377,
+"settlement": "Södertälje",
+"tatort": "0181TC108"
+},
+"Tu": {
+"name": "Tumba",
+"population": 46893,
+"settlement": "Tumba",
+"tatort": "0127TC103"
+},
+"U": {
+"name": "Uppsala C",
+"population": 174982,
+"settlement": "Uppsala",
+"tatort": "0380TC125"
+},
+"Upv": {
+"name": "Upplands Väsby",
+"population": 156517,
+"settlement": "Upplands Väsby och Sollentuna",
+"tatort": "0163TC103"
+},
+"Vhe": {
+"name": "Västerhaninge",
+"population": 31941,
+"settlement": "Västerhaninge",
+"tatort": "0136TB106"
+},
+"Än": {
+"name": "Älvängen",
+"off_m": 49,
+"population": 6634,
+"settlement": "Älvängen",
+"tatort": "1440TB106"
+},
+"Äs": {
+"name": "Älvsjö",
+"population": 1652895,
+"settlement": "Stockholm",
+"tatort": "0180TC101"
+}
+},
+"licence": "SCB open data, CC0 1.0 (scb.se, open data terms); Trafikverket CC0 1.0",
+"made_by": "bin\\se_ends_scb.py, bin\\se_scb_names.py and bin\\se_ends_write.py, 2026-11-08",
+"source": "Statistics Sweden (SCB): Statistiska tätorter 2023 (open geodata, WFS stat:Tatorter_2023, bef), names by tätort code from table MI0810 LandarealTatortN; Trafikverket TrainStation (CC0)",
+"source_url": "https://www.scb.se/vara-tjanster/oppna-data/oppna-geodata/statistiska-tatorter/",
+"v": 1,
+"year": 2023
+}

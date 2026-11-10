@@ -57,8 +57,9 @@ from .const import (
 )
 from .coordinator import AuthError, fetch_feed
 from .operators import OPERATORS, Operator, operators_in, regions_in_use
-from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR
+from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_TRAFIKVERKET
 from saw_livetrack.entur import CLIENT_NAME as ENTUR_CLIENT_NAME
+from saw_livetrack.trafikverket import check_key as trafikverket_check_key
 
 _KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
@@ -102,6 +103,10 @@ async def _check_key(hass, op: Operator, key: str) -> str | None:
         return await _check_digitraffic(hass, op)
     if op.source == SOURCE_ENTUR:
         return await _check_entur(hass, op)
+    if op.source == SOURCE_TRAFIKVERKET:
+        # One small read with the key (the key in the request body, never in a message; blocking, so the executor).
+        error = await hass.async_add_executor_job(trafikverket_check_key, key)
+        return "invalid_auth" if error == "invalid_key" else error
     params = {op.key_param: key} if op.needs_key else None
     try:
         feed = await fetch_feed(async_get_clientsession(hass), op.positions_url, params)

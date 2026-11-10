@@ -13,6 +13,12 @@ csv.DictReader and took 24.3 s on the laptop; bin\\ltcr_seq_replay.txt). Values 
 matched stripped (05_SHARED_LESSONS.md B5, Metra's spaces); rows are written back as
 they were read. Files tied to no route (agency, calendars, feed_info, anything else)
 are copied whole.
+
+THE LIBRARY HOLDS THE SAME CODE (saw_livetrack.gtfs.filter, hoisted from here) EXCEPT
+`route_keep`, which Norway added here on 2026-11-08 (SSOT 12) and the library has not
+got. So this copy stays until the library takes route_keep (backlog 325). Meanwhile
+services_on carries the library's day-by-day fix of 0.2.26, byte-identical to 0.2.33's
+function (2026-11-10).
 """
 
 from __future__ import annotations
@@ -159,23 +165,32 @@ def _agency_today(z: zipfile.ZipFile) -> date:
 
 
 def services_on(z: zipfile.ZipFile, days: Iterable[date]) -> set[str] | None:
-    """service_ids running on any of `days` (calendar.txt, then calendar_dates.txt: 1
-    adds, 2 removes), or None when the zip has neither file (every trip runs)."""
+    """service_ids running on any of `days`, or None when the zip has neither calendar
+    file (every trip runs). Each day is worked out on its own: calendar.txt, then THAT
+    day's calendar_dates.txt rows (1 adds, 2 removes); the days are then joined. Until
+    0.2.26 one set ran across the days, so a removal dated one day also dropped a service
+    the calendar ran on the others (measured 2026-11-06 on Renfe's long-distance
+    timetable: train 15001 and others, which ran the next day). saw_livetrack.renfe's
+    TripIndex keeps its own copy of this rule."""
     cal = list(_rows(z, "calendar.txt"))
     dates = list(_rows(z, "calendar_dates.txt"))
     if not cal and not dates:
         return None
+    by_date: dict[str, list[dict[str, str]]] = {}
+    for r in dates:
+        if r.get("date") and r.get("service_id"):
+            by_date.setdefault(r["date"], []).append(r)
     on: set[str] = set()
     for day in days:
         wd, ymd = _WEEKDAYS[day.weekday()], day.strftime("%Y%m%d")
-        on |= {r["service_id"] for r in cal if r.get("service_id") and r.get(wd) == "1"
-               and r.get("start_date", "") <= ymd <= r.get("end_date", "")}
-        for r in dates:
-            if r.get("date") == ymd and r.get("service_id"):
-                if r.get("exception_type") == "1":
-                    on.add(r["service_id"])
-                elif r.get("exception_type") == "2":
-                    on.discard(r["service_id"])
+        that_day = {r["service_id"] for r in cal if r.get("service_id") and r.get(wd) == "1"
+                    and r.get("start_date", "") <= ymd <= r.get("end_date", "")}
+        for r in by_date.get(ymd, ()):
+            if r.get("exception_type") == "1":
+                that_day.add(r["service_id"])
+            elif r.get("exception_type") == "2":
+                that_day.discard(r["service_id"])
+        on |= that_day
     return on
 
 

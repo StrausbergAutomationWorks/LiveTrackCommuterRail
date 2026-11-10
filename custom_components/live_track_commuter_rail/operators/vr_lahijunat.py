@@ -81,7 +81,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from saw_livetrack.digitraffic_rail import ATTRIBUTION, BASE, DEFAULT_USER, parse_ts
+from saw_livetrack.digitraffic_rail import ATTRIBUTION, BASE, DEFAULT_USER, next_stop, parse_ts
 
 from ..tunnel import AFTER, StopClock, Tunnel
 from .base import SOURCE_DIGITRAFFIC, Obs, Operator
@@ -182,22 +182,25 @@ def _last_actual(rows: list[Mapping[str, Any]]) -> int:
 
 def next_commercial(train: Mapping[str, Any] | None) -> tuple[str, Any, int | None] | None:
     """(station code, ETA, delay in minutes) of the next commercial stop after the
-    train's last actual row, or None. ETA: the live estimate, else the schedule. Delay:
-    that row's differenceInMinutes (rounded to the minute), else the last actual's.
-    saw_livetrack.digitraffic_rail.next_stop takes the FIRST row without an actual
-    instead, and stalls behind a missed one."""
-    rows = _rows(train)
-    last = _last_actual(rows)
-    fallback = rows[last].get("differenceInMinutes") if last >= 0 else None
-    for r in rows[last + 1:]:
-        if not _ahead(r):
-            continue
-        eta = parse_ts(r.get("liveEstimateTime")) or parse_ts(r.get("scheduledTime"))
-        delay = r.get("differenceInMinutes")
-        if not isinstance(delay, int) or isinstance(delay, bool):
-            delay = fallback
-        return r.get("stationShortCode"), eta, delay
-    return None
+    train's last actual row, or None: saw_livetrack.digitraffic_rail.next_stop with
+    commercial_only (backlog 289). ETA: the live estimate, else the schedule. Delay: that
+    row's differenceInMinutes (rounded to the minute), else the last actual's that has one.
+
+    Until 2026-11-10 this was this integration's own copy of the rule (87da98a), written
+    when the library took the FIRST row without an actual and stalled behind a missed one;
+    saw-livetrack 0.2.25 fixed the library the same way, and this reads it now."""
+    if not isinstance(train, dict):
+        return None
+    got = next_stop(train, commercial_only=True)
+    if got is not None and isinstance(got[2], bool):
+        # The library takes a JSON true for a number of minutes (bool is an int in Python): read it as no delay
+        # given, and fall back as the library does, to the last actual row's that is a number.
+        rows = _rows(train)
+        last = _last_actual(rows)
+        minutes = [r.get("differenceInMinutes") for r in rows[:last + 1] if r.get("actualTime")]
+        minutes = [m for m in minutes if isinstance(m, int) and not isinstance(m, bool)]
+        got = (got[0], got[1], minutes[-1] if minutes else None)
+    return got
 
 
 _CLOCK_FIELDS = (("actualTime", "actual"), ("liveEstimateTime", "estimate"),

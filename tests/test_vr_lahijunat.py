@@ -127,6 +127,12 @@ class StateTests(unittest.TestCase):
         # Before departure: the origin is next, with no delay known.
         self.assertEqual(vr.next_commercial(record(rows=BEFORE)["train"])[::2], ("HKI", None))
 
+    def test_next_commercial_skips_a_stop_that_carries_no_one(self):
+        # Backlog 289: the library's next_stop, asked for commercial stops only.
+        rows = [row("HKI", "DEPARTURE", -10, actual=True), row("ILA", "ARRIVAL", 2, commercial=False),
+                row("PSL", "ARRIVAL", 5)]
+        self.assertEqual(vr.next_commercial(record(rows=rows)["train"])[0], "PSL")
+
     def test_line_v_stops_behind_its_last_actual_do_not_count(self):
         rows = [row("RI", "DEPARTURE", -30, actual=True), row("HY", "ARRIVAL", -20),
                 row("JK", "ARRIVAL", -10, commercial=False, actual=True), row("HKI", "ARRIVAL", 20)]
@@ -192,8 +198,15 @@ class StopsTests(unittest.TestCase):
         self.assertEqual(vr.stops(recs, NAMES, 0.0), ({}, {}, {}))
 
     def test_a_boolean_delay_is_not_a_delay(self):
+        # Backlog 289 (2026-11-10): the library's rule, falling back to the last ACTUAL row that carries a number
+        # (here an earlier one, 2 minutes); the integration's own copy fell back to the very last actual row only,
+        # and gave none.
         rows = RUNNING[:-1] + [dict(row("LEN", "ARRIVAL", 25), differenceInMinutes=True)]
         rows[2] = dict(rows[2], differenceInMinutes=True)
+        _, delays, _ = vr.stops([record(rows=rows)], NAMES, 0.0)
+        self.assertEqual(delays["9123-15"], 120)
+        # With no actual row carrying a number, none.
+        rows = [dict(r, differenceInMinutes=True) if r.get("actualTime") else r for r in rows]
         _, delays, _ = vr.stops([record(rows=rows)], NAMES, 0.0)
         self.assertNotIn("9123-15", delays)
 
@@ -369,8 +382,9 @@ class OperatorTests(unittest.TestCase):
 
     def test_other_operators_keep_the_defaults(self):
         for op in ops.OPERATORS.values():
-            if op.id == "vr_lahijunat" or op.source in (base.SOURCE_RENFE, base.SOURCE_ENTUR):
-                continue   # Renfe's operators: tests/test_renfe.py; Norway's: tests/test_norway.py
+            if op.id == "vr_lahijunat" or op.source in (base.SOURCE_RENFE, base.SOURCE_ENTUR,
+                                                        base.SOURCE_TRAFIKVERKET):
+                continue   # Renfe's: tests/test_renfe.py; Norway's: tests/test_norway.py; Sweden's: test_sweden.py
             self.assertEqual(op.source, base.SOURCE_GTFS_RT, op.id)
             self.assertIsNone(op.parse_stops, op.id)
             self.assertIsNone(op.static_headers, op.id)

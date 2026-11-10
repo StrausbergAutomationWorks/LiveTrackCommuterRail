@@ -35,5 +35,6 @@ async def async_get_config_entry_diagnostics(
         "rail_shape_segments": coordinator.rail_shape_segments,
         "trip_coverage": coordinator.trip_coverage,
         "renfe_client": coordinator.renfe_stats,
+        "trafikverket_client": coordinator.trafikverket_stats,
         "plausible": coordinator.plausible_stats,
     }

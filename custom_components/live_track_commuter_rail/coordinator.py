@@ -40,12 +40,14 @@ from saw_livetrack.digitraffic_rail import DigitrafficError
 from saw_livetrack.renfe import RenfeError
 from saw_livetrack.entur import EnturError
 from saw_livetrack.gtfs import Fleet, decode
-from . import entur_push, plausible, poll, rail, shapepath, tracknet, tunnel
+from saw_livetrack.trafikverket import AuthRefused, KeyedError
+from . import entur_push, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
 from .operators import Operator
-from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_RENFE
+from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_RENFE, SOURCE_TRAFIKVERKET
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
+from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
 from .schedule import timetable_stale
@@ -150,6 +152,16 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._rail_client = None
         if op.source == SOURCE_DIGITRAFFIC:
             self._rail_client = get_shared_rail_client(hass, op.digitraffic_consumer)
+        # Trafikverket (Sweden, SSOT 14): the ONE shared client per Home Assistant, this operator's (consumer, brand)
+        # claimed with the key stored in this entry; the runs it keeps and the lines they run along (sweden_lines).
+        self._trv = None
+        self._trv_runs: sweden_lines.RunFilter | None = None
+        self._trv_geo: sweden_lines.SwedenGeometry | None = None
+        if op.source == SOURCE_TRAFIKVERKET:
+            self._trv = get_shared_trafikverket_client(hass, op.trafikverket_consumer, op.trafikverket_brand,
+                                                       str(entry.data.get(CONF_API_KEY, "")))
+            self._trv_runs = sweden_lines.RunFilter()
+            self._trv_geo = sweden_lines.SwedenGeometry(op.extra.get("fallback_stops", ()))
 
     def release(self) -> None:
         """Give back this entry's claim on the shared Digitraffic client. On the event
@@ -164,6 +176,43 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._entur = None
             release_shared_entur_client(self.hass, self.operator.entur_consumer,
                                         self.operator.entur_codespace)
+        if self._trv is not None:
+            self._trv = None
+            release_shared_trafikverket_client(self.hass, self.operator.trafikverket_consumer,
+                                               self.operator.trafikverket_brand)
+
+    def _read_trafikverket(self) -> tuple[list, dict[str, Any]]:
+        """(the runs kept, the geometry) for this operator's claim. Blocking: the executor. Raises the client's
+        errors."""
+        op = self.operator
+        runs = self._trv.for_consumer(op.trafikverket_consumer, op.trafikverket_brand)
+        stations = self._trv.stations()
+        kept = self._trv_runs.keep(runs, time.time())
+        static = self._trv_geo.update(kept, stations, self._trv.stations_version())
+        return kept, static
+
+    async def _fetch_trafikverket(self):
+        """(runs, geometry) from the shared Trafikverket client, or None on a failed fetch. Every key refused for
+        10 minutes asks the user for a new one. Only the exception's TYPE is logged: no message carries the key, which
+        travels in the request body."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(self._read_trafikverket)
+        except AuthRefused as err:
+            raise ConfigEntryAuthFailed(f"{op.name}: Trafikverket refused the key") from err
+        except KeyedError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
+
+    @property
+    def trafikverket_stats(self) -> dict[str, Any] | None:
+        """The shared Trafikverket client's counters and this entry's skips, for diagnostics; None for other
+        sources. Never a key."""
+        if self._trv is None:
+            return None
+        return {**self._trv.stats(), "skipped": dict(self._trv_runs.skipped),
+                "shipped_pairs": self._trv_geo.shipped_pairs,
+                "patterns": len(self._trv_geo.data.get("rail_shapes") or ())}
 
     def _entur_zip(self) -> bytes | None:
         """The shared Entur client's timetable zip for this operator's codespace, or None before it has one
@@ -256,7 +305,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         op = self.operator
         tu = None
-        if op.source == SOURCE_RENFE:
+        trv_static = None
+        if op.source == SOURCE_TRAFIKVERKET:
+            # The runs stand in for a feed, as Digitraffic's records: parse(runs) reads them. Sweden has no
+            # timetable: the geometry the client's stations and the shipped lines make stands in for one.
+            got = await self._fetch_trafikverket()
+            feed, trv_static = got if got is not None else (None, None)
+        elif op.source == SOURCE_RENFE:
             # Both feeds at once, already cut to this integration's consumer.
             got = await self._fetch_renfe()
             feed, tu = got if got is not None else (None, None)
@@ -319,6 +374,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.config_entry.async_create_background_task(
                 self.hass, self._static.async_refresh(), f"{op.id} timetable")
 
+        # Sweden's geometry for a Trafikverket operator (sweden_lines.SwedenGeometry), the cached timetable
+        # otherwise: everything below reads the one.
+        static = trv_static if trv_static is not None else self._static.data
         now = time.time()
         delays = None
         next_stops = None
@@ -340,38 +398,38 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Delay at the next stop, one rule for every feed (backlog 275):
             # the update's own delay, else predicted minus scheduled, which
             # needs the timetable. Fleet prefers it to parse_delays.
-            trip_delays = stop_delays(tu, self._static.data, now)
-            if self._static.data is not None:
-                self._check_timetable(*trip_coverage(tu, self._static.data))
-                next_stops = next_stops_from(tu, self._static.data, now)
+            trip_delays = stop_delays(tu, static, now)
+            if static is not None:
+                self._check_timetable(*trip_coverage(tu, static))
+                next_stops = next_stops_from(tu, static, now)
             if op.stops_from_updates is not None:
                 # Norway: from the timetable plus the update's delays, never the origin.
-                next_stops, trip_delays = op.stops_from_updates(tu, self._static.data, now)
+                next_stops, trip_delays = op.stops_from_updates(tu, static, now)
 
         extras = None
         if op.parse_stops is not None:
             # Digitraffic: next stops and delays from each train's own timetable.
-            next_stops, trip_delays, extras = op.parse_stops(feed, self._static.data, now)
+            next_stops, trip_delays, extras = op.parse_stops(feed, static, now)
 
         if self._rail_check is not None:
-            self._rail_check.set_shapes(self._static.data)
-        if op.source != SOURCE_DIGITRAFFIC and feed.header.HasField("timestamp"):
+            self._rail_check.set_shapes(static)
+        if op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET) and feed.header.HasField("timestamp"):
             self.feed_timestamp = int(feed.header.timestamp)
         # A fix older than the operator's limit is refused before Fleet sees it
         # (poll.fresh_only; SE Queensland's frozen fixes, SSOT 9.1).
         observations, stale = poll.fresh_only(op.parse(feed), now, op.max_fix_age_s)
         if op.obs_filter is not None:
             # The operator's own refusals (Norway: a finished run's train still in the feed).
-            observations = op.obs_filter(observations, self._static.data, now)
+            observations = op.obs_filter(observations, static, now)
         if self._plausible is not None:
             # Off the trip's own line, back along it or too fast: the last good fix.
             observations = self._plausible.filter(
-                observations, self._static.data, now,
+                observations, static, now,
                 untrusted=op.untrusted_fixes(feed) if op.untrusted_fixes is not None else ())
         result = self.fleet.update(
             observations, now,
             show_parked=self._show_parked, delays=delays, next_stops=next_stops,
-            static=self._static.data, trip_delays=trip_delays)
+            static=static, trip_delays=trip_delays)
         result["stale"] = stale
         # A fix this old never counts as standing (Finland's tunnel; SSOT 8.1).
         result["unstalled"] = poll.unstall_stale(result, observations, now,
@@ -379,10 +437,10 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         poll.apply_extras(result, extras)
         # The operator's own touches after Fleet (SE Queensland: look, label, lateness
         # and the arrow, from the timetable; poll.decorate_all).
-        poll.decorate_all(result, observations, self._static.data, op.decorate)
+        poll.decorate_all(result, observations, static, op.decorate)
         if self._plausible is not None:
             # The arrow the way the trip's stops run, not the shape's order (C16).
-            self._plausible.apply_arrows(result, observations, self._static.data)
+            self._plausible.apply_arrows(result, observations, static)
         # Along the tracks from the last fix (D3c-v), after everything that moves or
         # replaces a position.
         if self._track_path is not None:
@@ -391,16 +449,16 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # No track network shipped: along each trip's own shape (shapepath; Lee
             # 2026-10-20, "A train cannot exist off of the tracks").
             result["track_paths"] = shapepath.add_shape_paths(result, observations,
-                                                              self._static.data)
+                                                              static)
         if self._push is not None:
             # A train dark in a tunnel is pushed along it on its own stop times, after the
             # paths from the fixes: it replaces the position and the path (D3d, SSOT 8.3).
-            names = (self._static.data or {}).get("stops") or {}
+            names = (static or {}).get("stops") or {}
             counts = self._push.apply(result, observations, op.tunnel_clocks(feed), now,
                                       names)
             result["estimated"] = counts[tunnel.ESTIMATED]
         if self._entur_push is not None:
             # Norway: a frozen fix at one of Oslo's tunnels is pushed through it; elsewhere it is held (D3d).
-            result["estimated"] = self._entur_push.apply(result, observations, self._static.data, now)
+            result["estimated"] = self._entur_push.apply(result, observations, static, now)
         self._last_good = result
         return result

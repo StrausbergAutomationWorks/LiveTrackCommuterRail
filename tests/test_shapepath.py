@@ -242,7 +242,7 @@ class CoordinatorTests(unittest.TestCase):
                       "            result[\"track_paths\"] = poll.add_track_paths(result, self._track_path)\n"
                       "        else:\n", src)
         self.assertIn("result[\"track_paths\"] = shapepath.add_shape_paths(result, observations,\n"
-                      "                                                              self._static.data)", src)
+                      "                                                              static)", src)
         # After the operator's own touches, before the tunnel push replaces anything.
         self.assertLess(src.index("poll.decorate_all("), src.index("shapepath.add_shape_paths("))
         self.assertLess(src.index("shapepath.add_shape_paths("), src.index("if self._push is not None:"))

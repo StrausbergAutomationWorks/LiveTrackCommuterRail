@@ -33,6 +33,10 @@ SOURCE_RENFE = "renfe"
 # hands over a positions feed and a trip-updates feed already cut to this integration's consumer and the operator's
 # codespace; parse(feed) reads the positions as for GTFS_RT.
 SOURCE_ENTUR = "entur"
+# Trafikverket (Sweden, SSOT 14): the shared Trafikverket client (saw_livetrack.trafikverket, one poller per Home
+# Assistant) hands over this operator's runs, each a fix and the calls of the trip it is on; parse(runs) reads them,
+# as Digitraffic's records. Keyed: the user's key lives in the entry and the client sends it in the request BODY.
+SOURCE_TRAFIKVERKET = "trafikverket"
 
 
 @dataclass(frozen=True)
@@ -107,6 +111,10 @@ class Operator:
     entur_codespace: str | None = None
     # Entur: trains pushed through Oslo's tunnels where their fixes freeze (entur_push.py, D3d).
     entur_push: bool = False
+    # Trafikverket: the (consumer, brand) claim this operator registers with the shared client ("commuter";
+    # saw_livetrack.trafikverket.CONSUMERS, BRANDS).
+    trafikverket_consumer: str | None = None
+    trafikverket_brand: str | None = None
     # With static_window: keep only the routes this accepts (a routes.txt row as a dict; Norway's L lines). None:
     # every route.
     static_route_keep: Callable[[dict[str, str]], bool] | None = None
@@ -175,4 +183,5 @@ REGIONS: dict[str, str] = {
     "ES-PV": "Spain — Basque Country",
     "ES-VC": "Spain — Valencian Community",
     "NO": "Norway",
+    "SE": "Sweden",
 }

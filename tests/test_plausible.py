@@ -305,11 +305,11 @@ class WiringTests(unittest.TestCase):
             src = fh.read()
         i_fresh = src.index("poll.fresh_only(op.parse(feed)")
         i_filter = src.index("observations = self._plausible.filter(\n"
-                             "                observations, self._static.data, now,\n"
+                             "                observations, static, now,\n"
                              "                untrusted=op.untrusted_fixes(feed) if op.untrusted_fixes is not None else ())")
         i_fleet = src.index("result = self.fleet.update(")
         i_dec = src.index("poll.decorate_all(result")
-        i_arrow = src.index("self._plausible.apply_arrows(result, observations, self._static.data)")
+        i_arrow = src.index("self._plausible.apply_arrows(result, observations, static)")
         i_path = src.index("shapepath.add_shape_paths(")
         self.assertTrue(i_fresh < i_filter < i_fleet < i_dec < i_arrow < i_path)
         self.assertIn("self._plausible = plausible.Plausible() if op.plausible else None", src)
