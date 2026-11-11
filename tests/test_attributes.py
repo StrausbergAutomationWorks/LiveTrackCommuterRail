@@ -37,7 +37,8 @@ class AttributeTests(unittest.TestCase):
         self.assertNotIn("line", a)
 
     def test_unlisted_and_forbidden_keys_never_reach_the_map(self):
-        rec = dict(REC, map_layer="air", heading_deg=90.0, speed_kmh=0,
+        # speed_kmh is published where the feed reports one (NS, SSOT 15), so it is no longer in NEVER.
+        rec = dict(REC, map_layer="air", heading_deg=90.0,
                    max_extrapolation_s=60, object_ids={"mmsi": "1"},
                    z_index_offset=5, surprise="x")
         a = attributes.to_attributes(rec, "metra")

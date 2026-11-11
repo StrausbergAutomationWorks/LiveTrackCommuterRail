@@ -584,7 +584,8 @@ class OperatorTests(unittest.TestCase):
     def test_manifest_asks_for_the_library_with_the_runs(self):
         m = json.loads((pathlib.Path(__file__).resolve().parents[1] / "custom_components" / "live_track_commuter_rail"
                         / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("saw-livetrack[gtfs]>=0.2.34,<0.3", m["requirements"])
+        # 0.2.35 since 2026-11-11: saw_livetrack.ns (NS, SSOT 15). 0.2.34 from 2026-11-11: the runs.
+        self.assertIn("saw-livetrack[gtfs]>=0.2.35,<0.3", m["requirements"])
 
     def test_attributes_pass_the_band(self):
         self.assertIn("marker_inner_ring_color", attributes.PASSTHROUGH)

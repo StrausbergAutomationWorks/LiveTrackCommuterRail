@@ -41,6 +41,10 @@ SOURCE_TRAFIKVERKET = "trafikverket"
 # hands over this consumer's trains; irish_runs.py turns them, with the timetable, into one row per run drawn, and
 # parse(rows) reads those. Keyless.
 SOURCE_IRISH_RAIL = "irish_rail"
+# NS (the Netherlands, SSOT 15): the shared NS client (saw_livetrack.ns, one poller per Home Assistant, each entry's
+# key) hands over this consumer's trains, each a fix (first-seen time) and, where the timetable names it, its calls
+# and SpoorKaart path; parse(trains) reads them, and ns_lines.py draws their lines.
+SOURCE_NS = "ns"
 
 
 @dataclass(frozen=True)
@@ -122,6 +126,8 @@ class Operator:
     # Irish Rail: the consumer this operator registers with the shared client ("commuter";
     # saw_livetrack.irish_rail.CONSUMERS).
     irish_rail_consumer: str | None = None
+    # NS: the consumer this operator registers with the shared client ("commuter"; saw_livetrack.ns.CONSUMERS).
+    ns_consumer: str | None = None
     # The cut timetable zip -> a table kept with the distilled timetable under "table", from the SAME bytes (Irish
     # Rail: saw_livetrack.irish_rail.read_timetable, the runs' table, beside the shapes it draws them on). None: none.
     static_table: Callable[[bytes], dict[str, Any]] | None = None
@@ -193,6 +199,7 @@ REGIONS: dict[str, str] = {
     "ES-MD": "Spain — Madrid",
     "ES-PV": "Spain — Basque Country",
     "ES-VC": "Spain — Valencian Community",
+    "NL": "Netherlands",
     "NO": "Norway",
     "SE": "Sweden",
 }

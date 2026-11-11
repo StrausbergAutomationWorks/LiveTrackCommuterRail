@@ -42,12 +42,14 @@ from saw_livetrack.entur import EnturError
 from saw_livetrack.gtfs import Fleet, decode
 from saw_livetrack.trafikverket import AuthRefused, KeyedError
 from saw_livetrack.irish_rail import KeyedError as IrishRailError
-from . import entur_push, irish_runs, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
+from saw_livetrack.ns import AuthRefused as NsAuthRefused, KeyedError as NsKeyedError
+from . import entur_push, irish_runs, ns_lines, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
 from .operators import Operator
-from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_RENFE,
+from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_NS, SOURCE_RENFE,
                              SOURCE_TRAFIKVERKET)
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
 from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
+from .shared_ns import get_shared_ns_client, release_shared_ns_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
@@ -176,6 +178,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                                                        str(entry.data.get(CONF_API_KEY, "")))
             self._trv_runs = sweden_lines.RunFilter()
             self._trv_geo = sweden_lines.SwedenGeometry(op.extra.get("fallback_stops", ()))
+        # NS (the Netherlands, SSOT 15): the ONE shared client per Home Assistant, this operator's consumer claimed with
+        # the key stored in this entry; the lines its trains run along (ns_lines).
+        self._ns = None
+        self._ns_geo: ns_lines.NsGeometry | None = None
+        if op.source == SOURCE_NS:
+            self._ns = get_shared_ns_client(hass, op.ns_consumer, str(entry.data.get(CONF_API_KEY, "")))
+            self._ns_geo = ns_lines.NsGeometry()
 
     def release(self) -> None:
         """Give back this entry's claim on the shared Digitraffic client. On the event
@@ -197,6 +206,36 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._irish is not None:
             self._irish = None
             release_shared_irish_rail_client(self.hass, self.operator.irish_rail_consumer)
+        if self._ns is not None:
+            self._ns = None
+            release_shared_ns_client(self.hass, self.operator.ns_consumer)
+
+    def _read_ns(self) -> tuple[list, dict[str, Any]]:
+        """(this operator's trains, the geometry). Blocking: the executor. Raises the client's errors."""
+        op = self.operator
+        client = self._ns
+        trains = client.for_consumer(op.ns_consumer, op.id)
+        static = self._ns_geo.update(trains, client.stations(), client.pair_lines(), client.static_version())
+        return trains, static
+
+    async def _fetch_ns(self):
+        """(trains, geometry) from the shared NS client, or None on a failed fetch. Every key refused for 10 minutes
+        asks the user for a new one. Only the exception's TYPE is logged."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(self._read_ns)
+        except NsAuthRefused as err:
+            raise ConfigEntryAuthFailed(f"{op.name}: NS refused the key") from err
+        except NsKeyedError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
+
+    @property
+    def ns_stats(self) -> dict[str, Any] | None:
+        """The shared NS client's counters, for diagnostics; None for other sources. Never a key."""
+        if self._ns is None:
+            return None
+        return {**self._ns.stats(), "patterns": len(self._ns_geo.data.get("rail_shapes") or ())}
 
     def _irish_zip(self) -> bytes | None:
         """The shared Irish Rail client's copy of the NTA's zip, or None before it has one (blocking: the executor;
@@ -366,6 +405,11 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # timetable: the geometry the client's stations and the shipped lines make stands in for one.
             got = await self._fetch_trafikverket()
             feed, trv_static = got if got is not None else (None, None)
+        elif op.source == SOURCE_NS:
+            # The trains stand in for a feed, as Sweden's runs: parse(trains) reads them; the geometry their SpoorKaart
+            # paths make stands in for a timetable (ns_lines.NsGeometry).
+            got = await self._fetch_ns()
+            feed, trv_static = got if got is not None else (None, None)
         elif op.source == SOURCE_RENFE:
             # Both feeds at once, already cut to this integration's consumer.
             got = await self._fetch_renfe()
@@ -479,7 +523,7 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if self._rail_check is not None:
             self._rail_check.set_shapes(static)
-        if (op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET, SOURCE_IRISH_RAIL)
+        if (op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET, SOURCE_IRISH_RAIL, SOURCE_NS)
                 and feed.header.HasField("timestamp")):
             self.feed_timestamp = int(feed.header.timestamp)
         # A fix older than the operator's limit is refused before Fleet sees it

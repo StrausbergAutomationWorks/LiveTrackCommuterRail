@@ -18,6 +18,9 @@ PASSTHROUGH = (
     "line",
     "line_name",
     "observed_at",
+    # The observed_at rule under D2: "first_seen" where the source gives no fix time and observed_at is the poll
+    # that first saw the position (NS, SSOT 15). Absent when the source gave the time.
+    "observed_at_source",
     "last_seen",
     "previous_latitude",
     "previous_longitude",
@@ -32,6 +35,8 @@ PASSTHROUGH = (
     "fix_latitude",
     "fix_longitude",
     "course_deg",
+    # D2: the speed the SOURCE reported, km/h. Only NS here reports one (SSOT 15).
+    "speed_kmh",
     "icon_rotation_deg",
     "icon_rotation_basis",
     "position_jump",
@@ -61,7 +66,7 @@ def to_attributes(rec: dict[str, Any], operator_id: str) -> dict[str, Any]:
 
     Never emitted, on purpose:
       heading_deg          no feed here reports which way a train FACES (D2)
-      speed_kmh            no feed here reports a speed (D3b-i)
+      speed_kmh            except where the feed reports one (NS, SSOT 15); never derived (D3b-i)
       max_extrapolation_s  fails D3b condition 1 on every operator so far
       object_ids           a vehicle or trip id is none of D11's keys
       z_index_offset       retired; map_layer replaces it (D10)
