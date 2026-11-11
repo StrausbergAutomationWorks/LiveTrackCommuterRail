@@ -383,8 +383,9 @@ class OperatorTests(unittest.TestCase):
     def test_other_operators_keep_the_defaults(self):
         for op in ops.OPERATORS.values():
             if op.id == "vr_lahijunat" or op.source in (base.SOURCE_RENFE, base.SOURCE_ENTUR,
-                                                        base.SOURCE_TRAFIKVERKET):
-                continue   # Renfe's: tests/test_renfe.py; Norway's: tests/test_norway.py; Sweden's: test_sweden.py
+                                                        base.SOURCE_TRAFIKVERKET, base.SOURCE_IRISH_RAIL):
+                continue   # Renfe's: tests/test_renfe.py; Norway's: tests/test_norway.py; Sweden's: test_sweden.py;
+                #            Irish Rail's: test_irish_rail.py
             self.assertEqual(op.source, base.SOURCE_GTFS_RT, op.id)
             self.assertIsNone(op.parse_stops, op.id)
             self.assertIsNone(op.static_headers, op.id)

@@ -36,5 +36,6 @@ async def async_get_config_entry_diagnostics(
         "trip_coverage": coordinator.trip_coverage,
         "renfe_client": coordinator.renfe_stats,
         "trafikverket_client": coordinator.trafikverket_stats,
+        "irish_rail": coordinator.irish_rail_stats,
         "plausible": coordinator.plausible_stats,
     }

@@ -37,6 +37,10 @@ SOURCE_ENTUR = "entur"
 # Assistant) hands over this operator's runs, each a fix and the calls of the trip it is on; parse(runs) reads them,
 # as Digitraffic's records. Keyed: the user's key lives in the entry and the client sends it in the request BODY.
 SOURCE_TRAFIKVERKET = "trafikverket"
+# Irish Rail (Ireland, SSOT 13): the shared Irish Rail client (saw_livetrack.irish_rail, one poller per Home Assistant)
+# hands over this consumer's trains; irish_runs.py turns them, with the timetable, into one row per run drawn, and
+# parse(rows) reads those. Keyless.
+SOURCE_IRISH_RAIL = "irish_rail"
 
 
 @dataclass(frozen=True)
@@ -115,6 +119,12 @@ class Operator:
     # saw_livetrack.trafikverket.CONSUMERS, BRANDS).
     trafikverket_consumer: str | None = None
     trafikverket_brand: str | None = None
+    # Irish Rail: the consumer this operator registers with the shared client ("commuter";
+    # saw_livetrack.irish_rail.CONSUMERS).
+    irish_rail_consumer: str | None = None
+    # The cut timetable zip -> a table kept with the distilled timetable under "table", from the SAME bytes (Irish
+    # Rail: saw_livetrack.irish_rail.read_timetable, the runs' table, beside the shapes it draws them on). None: none.
+    static_table: Callable[[bytes], dict[str, Any]] | None = None
     # With static_window: keep only the routes this accepts (a routes.txt row as a dict; Norway's L lines). None:
     # every route.
     static_route_keep: Callable[[dict[str, str]], bool] | None = None
@@ -171,6 +181,7 @@ REGIONS: dict[str, str] = {
     "US-WI": "United States — Wisconsin",
     "AU-QLD": "Australia — Queensland",
     "FI": "Finland",
+    "IE": "Ireland",
     "ES-AN": "Spain — Andalusia",
     "ES-AR": "Spain — Aragon",
     "ES-AS": "Spain — Asturias",

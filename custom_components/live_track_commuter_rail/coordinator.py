@@ -41,10 +41,13 @@ from saw_livetrack.renfe import RenfeError
 from saw_livetrack.entur import EnturError
 from saw_livetrack.gtfs import Fleet, decode
 from saw_livetrack.trafikverket import AuthRefused, KeyedError
-from . import entur_push, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
+from saw_livetrack.irish_rail import KeyedError as IrishRailError
+from . import entur_push, irish_runs, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
 from .operators import Operator
-from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_RENFE, SOURCE_TRAFIKVERKET
+from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_RENFE,
+                             SOURCE_TRAFIKVERKET)
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
+from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
@@ -126,11 +129,22 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._entur = None
         if op.source == SOURCE_ENTUR:
             self._entur = get_shared_entur_client(hass, op.entur_consumer, op.entur_codespace)
+        # Irish Rail (Ireland, SSOT 13): the ONE shared client per Home Assistant, this operator's consumer claimed; its
+        # copy of the NTA's timetable on disk is the one distilled here (cut to the P/D trips); the runs drawn from it
+        # (irish_runs.py), every one an estimate.
+        self._irish = None
+        self._irish_runs: irish_runs.IrishRuns | None = None
+        self._irish_version: Any = None
+        if op.source == SOURCE_IRISH_RAIL:
+            self._irish = get_shared_irish_rail_client(hass, op.irish_rail_consumer)
+            self._irish_runs = irish_runs.IrishRuns()
         raw_source = None
         if self._renfe is not None:
             raw_source = self._renfe.static_zip
         elif self._entur is not None:
             raw_source = self._entur_zip
+        elif self._irish is not None:
+            raw_source = self._irish_zip
         self._static = StaticTimetable(hass, self._session, op, raw_source=raw_source)
         # Trains pushed through Oslo's tunnels where their fixes freeze (entur_push.py).
         self._entur_push = entur_push.EnturPush() if op.entur_push else None
@@ -180,6 +194,47 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._trv = None
             release_shared_trafikverket_client(self.hass, self.operator.trafikverket_consumer,
                                                self.operator.trafikverket_brand)
+        if self._irish is not None:
+            self._irish = None
+            release_shared_irish_rail_client(self.hass, self.operator.irish_rail_consumer)
+
+    def _irish_zip(self) -> bytes | None:
+        """The shared Irish Rail client's copy of the NTA's zip, or None before it has one (blocking: the executor;
+        StaticTimetable asks again in SOURCE_WAIT_S)."""
+        client = self._irish
+        path = client.static_path() if client is not None else None
+        if path is None:
+            return None
+        with open(path, "rb") as fh:
+            return fh.read()
+
+    def _read_irish(self, static: dict[str, Any] | None) -> tuple[list, Any]:
+        """(the runs drawn this poll, the client's timetable version). Blocking: the executor. Raises the client's
+        errors (a failed read of the trains); the station list is the client's last copy when its weekly read fails."""
+        op = self.operator
+        client = self._irish
+        trains = client.for_consumer(op.irish_rail_consumer)
+        api = client.stations()
+        rows = self._irish_runs.poll(trains, api, client.stations_version(), static, time.time())
+        return rows, client.static_version()
+
+    async def _fetch_irish(self):
+        """(rows, timetable version) from the shared Irish Rail client, or None on a failed read. Keyless: only the
+        exception's TYPE is logged, as for every feed here."""
+        try:
+            return await self.hass.async_add_executor_job(self._read_irish, self._static.data)
+        except IrishRailError as err:
+            _LOGGER.debug("%s feed failed: %s", self.operator.id, type(err).__name__)
+            return None
+
+    @property
+    def irish_rail_stats(self) -> dict[str, Any] | None:
+        """The shared Irish Rail client's counters and this entry's runs, for diagnostics; None for other sources."""
+        if self._irish is None or self._irish_runs is None:
+            return None
+        runs = self._irish_runs
+        return {**self._irish.stats(), "drawn": len(runs.rows), "unplaced": runs.unplaced,
+                "skipped": dict(runs.skipped), "ghosts": runs.tracker.ghosts, "early": runs.tracker.early}
 
     def _read_trafikverket(self) -> tuple[list, dict[str, Any]]:
         """(the runs kept, the geometry) for this operator's claim. Blocking: the executor. Raises the client's
@@ -322,6 +377,17 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif op.source == SOURCE_DIGITRAFFIC:
             # The client's records stand in for a feed: parse(records) reads them.
             feed = await self._fetch_digitraffic()
+        elif op.source == SOURCE_IRISH_RAIL:
+            # The runs drawn from the timetable stand in for a feed (irish_runs.py): parse(rows) reads them. A new
+            # copy of the NTA's zip is distilled again within the hour, not at the day's refresh.
+            got = await self._fetch_irish()
+            feed = None
+            if got is not None:
+                feed, version = got
+                if version != self._irish_version:
+                    if self._irish_version is not None:
+                        self._static.request_refresh()
+                    self._irish_version = version
         else:
             try:
                 feed = await fetch_feed(self._session, op.positions_url, self._params)
@@ -413,7 +479,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if self._rail_check is not None:
             self._rail_check.set_shapes(static)
-        if op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET) and feed.header.HasField("timestamp"):
+        if (op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET, SOURCE_IRISH_RAIL)
+                and feed.header.HasField("timestamp")):
             self.feed_timestamp = int(feed.header.timestamp)
         # A fix older than the operator's limit is refused before Fleet sees it
         # (poll.fresh_only; SE Queensland's frozen fixes, SSOT 9.1).
@@ -460,5 +527,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._entur_push is not None:
             # Norway: a frozen fix at one of Oslo's tunnels is pushed through it; elsewhere it is held (D3d).
             result["estimated"] = self._entur_push.apply(result, observations, static, now)
+        if self._irish_runs is not None:
+            # Irish Rail: every train a no-fix estimate along its trip's shape, last of all (D3d, irish_runs.py).
+            result["estimated"] = self._irish_runs.publish(result)
         self._last_good = result
         return result

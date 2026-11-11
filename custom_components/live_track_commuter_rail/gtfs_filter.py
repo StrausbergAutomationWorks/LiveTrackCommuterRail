@@ -248,6 +248,42 @@ def keep_service_window(raw: bytes, route_types: Iterable[str] | None = None,
     return buf.getvalue()
 
 
+def keep_trips(raw: bytes, trip_keep: Callable[[dict[str, str]], bool]) -> bytes:
+    """The zip with only the trips `trip_keep` accepts (a trips.txt row as a stripped dict), their routes, stop times,
+    stops (with parent stations) and shapes; calendars and the rest copied whole. Blocking. Irish Rail (SSOT 13): ONE
+    zip for InterCity, Commuter and DART, told apart only by each trip's code (trip_short_name). Not in the library."""
+    z = zipfile.ZipFile(io.BytesIO(raw))
+    names = z.namelist()
+    trips: set[str] = set()
+    routes: set[str] = set()
+    shapes: set[str] = set()
+    for r in _rows(z, "trips.txt"):
+        if r.get("trip_id") and trip_keep(r):
+            trips.add(r["trip_id"])
+            if r.get("route_id"):
+                routes.add(r["route_id"])
+            if r.get("shape_id"):
+                shapes.add(r["shape_id"])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as out:
+        used = _stop_times_for(z, out, trips) if "stop_times.txt" in names else set()
+        parents = _column(z, "stops.txt", "parent_station", "stop_id", used)
+        for name in names:
+            if name == "stop_times.txt":
+                continue
+            if name == "routes.txt":
+                _filter(z, out, name, "route_id", routes)
+            elif name == "trips.txt":
+                _filter(z, out, name, "trip_id", trips)
+            elif name == "stops.txt":
+                _filter(z, out, name, "stop_id", used | parents)
+            elif name == "shapes.txt":
+                _filter(z, out, name, "shape_id", shapes)
+            else:
+                out.writestr(name, z.read(name))
+    return buf.getvalue()
+
+
 def _stop_times_for(z: zipfile.ZipFile, out: zipfile.ZipFile, trips: set[str]) -> set[str]:
     """Copy stop_times.txt keeping the rows of `trips`, reading it once line by line:
     a line whose first character is not a quote is split on commas, others through csv.

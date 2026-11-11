@@ -60,10 +60,16 @@ def _distill(raw: bytes, op: Operator) -> dict[str, Any]:
         raw = op.static_rewrite(raw)
     d = distill(raw, stop_times=op.static_stop_times)
     d["rail_shapes"], index = rail.shapes_indexed(raw)
-    # Each trip's own shape, for the way between two fixes (shapepath, D3c-v).
-    d["trip_shapes"] = rail.trip_shapes(raw, index, d.get("sched"))
+    # Each trip's own shape, for the way between two fixes (shapepath, D3c-v). With a runs' table (Irish Rail), EVERY
+    # trip's: the table runs from yesterday to six days on, `sched` only to tomorrow (MEASURED on the NTA zip: 430 of
+    # 773 P/D trips kept by `sched` on a Wednesday, bin\ie_ltcr_replay.txt).
+    keep = None if op.static_table is not None else d.get("sched")
+    d["trip_shapes"] = rail.trip_shapes(raw, index, keep)
     if op.static_extras is not None:
         d["extras"] = op.static_extras(zipfile.ZipFile(io.BytesIO(raw)), d, index)
+    if op.static_table is not None:
+        # Irish Rail (SSOT 13): the runs' table from the same bytes as the shapes it is drawn on.
+        d["table"] = op.static_table(raw)
     return d
 
 
@@ -137,6 +143,7 @@ class StaticTimetable:
         return (d if isinstance(d, dict) and d.get("v") == STATIC_VERSION and "rail_shapes" in d
                 and "trip_shapes" in d
                 and (self._op.static_extras is None or "extras" in d)
+                and (self._op.static_table is None or "table" in d)
                 else None)
 
     def _write(self, d: dict[str, Any]) -> None:

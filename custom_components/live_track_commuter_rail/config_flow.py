@@ -57,8 +57,10 @@ from .const import (
 )
 from .coordinator import AuthError, fetch_feed
 from .operators import OPERATORS, Operator, operators_in, regions_in_use
-from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_TRAFIKVERKET
+from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_TRAFIKVERKET
+from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
 from saw_livetrack.entur import CLIENT_NAME as ENTUR_CLIENT_NAME
+from saw_livetrack.irish_rail import KeyedError as IrishRailError
 from saw_livetrack.trafikverket import check_key as trafikverket_check_key
 
 _KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
@@ -97,8 +99,24 @@ async def _check_entur(hass, op: Operator) -> str | None:
         return "cannot_connect"
 
 
+async def _check_irish_rail(hass, op: Operator) -> str | None:
+    """One read of Irish Rail's trains through the SHARED client (keyless; within a minute of another Live Track
+    integration's read it is that read, costing no request): None when it answers, else cannot_connect. The claim is
+    given back at once; the entry claims again when it loads."""
+    client = get_shared_irish_rail_client(hass, op.irish_rail_consumer)
+    try:
+        await hass.async_add_executor_job(client.for_consumer, op.irish_rail_consumer)
+    except IrishRailError:
+        return "cannot_connect"
+    finally:
+        release_shared_irish_rail_client(hass, op.irish_rail_consumer)
+    return None
+
+
 async def _check_key(hass, op: Operator, key: str) -> str | None:
     """None when the operator accepts the key, else an error code."""
+    if op.source == SOURCE_IRISH_RAIL:
+        return await _check_irish_rail(hass, op)
     if op.source == SOURCE_DIGITRAFFIC:
         return await _check_digitraffic(hass, op)
     if op.source == SOURCE_ENTUR:

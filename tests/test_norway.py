@@ -590,7 +590,8 @@ class RegistryTests(unittest.TestCase):
                 self.assertIsNone(op.entur_consumer, op.id)
                 self.assertFalse(op.entur_push, op.id)
                 self.assertIsNone(op.static_route_keep, op.id)
-                self.assertIsNone(op.static_rewrite, op.id)
+                if op.source != base.SOURCE_IRISH_RAIL:   # Irish Rail cuts its zip: tests/test_irish_rail.py
+                    self.assertIsNone(op.static_rewrite, op.id)
                 self.assertIsNone(op.obs_filter, op.id)
 
     def test_look_colours(self):
