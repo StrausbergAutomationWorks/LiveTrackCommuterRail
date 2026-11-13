@@ -1,8 +1,45 @@
 # Live Track Commuter Rail
 
-Live commuter trains on your Home Assistant map. Pick the railroad you want to
-watch; every train it reports appears as a `geo_location` entity and moves as
-the railroad's live feed updates. Add more railroads one at a time.
+**English** · [Suomi](README.fi.md) · [Svenska](README.sv.md) · [Norsk](README.nb.md) · [Español](README.es.md) · [Nederlands](README.nl.md) · [Gaeilge](README.ga.md)
+
+Live commuter trains on your Home Assistant map. Live Track Commuter Rail is a
+Home Assistant integration (a custom component, installed through the
+Marketplace / HACS) that shows every train of the commuter railroads you pick,
+in real time: where each train is, its train number and line, whether it is
+late, its next stop and when it is due there. Positions come from each
+railroad's own open data feed (GTFS-Realtime or the railroad's live API); every
+train appears as a `geo_location` entity and moves as the feed updates. Add
+more railroads one at a time.
+
+Railroads today: **Metra** and the **South Shore Line** (Chicago),
+**Renfe Cercanías** and **Rodalies de Catalunya** (Madrid, Barcelona, Valencia,
+Sevilla, Bilbao and ten more Spanish networks), **VR and HSL commuter trains**
+(Helsinki, Finland), **Vy**, **Go-Ahead Norge** and **Flytoget** (Oslo, Bergen,
+Stavanger), **SL Pendeltåg**, **Västtågen** and **Arlanda Express** (Stockholm,
+Göteborg), **NS Sprinter** (the Netherlands), **Irish Rail** (Dublin, Cork),
+**Queensland Rail Citytrain** (Brisbane), **NSW TrainLink Intercity** (Sydney)
+and **V/Line** (Melbourne, Geelong, Ballarat, Bendigo).
+
+## Part of Live Track
+
+Live Track is a system of modules for Home Assistant. Each module tracks one
+kind of thing that moves, and every module draws on the same map, so trains,
+aircraft and more share one live picture. The modules share one Python library,
+[saw-livetrack](https://github.com/StrausbergAutomationWorks/LiveTrackCore)
+(on PyPI), and one map card,
+[LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard).
+Where two modules read the same source, one shared client serves both, so
+installing another module does not add requests to that source. Install only
+the modules you want; each works on its own.
+
+| Module | What it tracks | Status |
+|---|---|---|
+| **Live Track Commuter Rail** (this one) | commuter trains | released |
+| [Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft) | aircraft around your home, with routes and type icons (ADS-B) | released |
+| [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT) | immigration and federal law-enforcement aircraft and vessels | released |
+| Live Track Intercity Rail | intercity and long-distance trains in North America, Europe and Australia (Amtrak, Brightline, VIA Rail, VR and more) | in development |
+| Live Track Ships | ships and boats (AIS) | in development |
+| Live Track Weather | weather warnings and tropical cyclones | in development |
 
 This integration is not sponsored by, affiliated with, or operated by any of
 the railroads it reads. It is original work, MIT-licensed.
@@ -257,3 +294,14 @@ these services, and their terms apply to you.
 Code: MIT, see `LICENSE`. The files in `rail/` keep their sources' licences
 (public domain, CC BY 4.0, NLOD 2.0, ODbL 1.0, CC0), and the bundled map card
 its own; see [`ATTRIBUTION.md`](ATTRIBUTION.md).
+
+## Search terms
+
+Home Assistant train tracker · live train map · real-time train positions ·
+commuter rail · regional rail · suburban rail · GTFS-Realtime · HACS
+integration · Metra tracker · South Shore Line tracker · Renfe Cercanías en
+tiempo real · Rodalies en temps real · trenes en el mapa · lähijunat kartalla ·
+junat reaaliajassa · HSL · pendeltåg i realtid · tåg på kartan · tog i
+sanntid · Vy · Flytoget · NS treinen live · Sprinter · treinkaart · Irish Rail
+live trains · traenacha beo · Queensland Rail · Translink · NSW TrainLink ·
+Transport for NSW · V/Line · Transport Victoria
