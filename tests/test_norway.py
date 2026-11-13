@@ -592,7 +592,8 @@ class RegistryTests(unittest.TestCase):
                 self.assertIsNone(op.static_route_keep, op.id)
                 if op.source != base.SOURCE_IRISH_RAIL:   # Irish Rail cuts its zip: tests/test_irish_rail.py
                     self.assertIsNone(op.static_rewrite, op.id)
-                self.assertIsNone(op.obs_filter, op.id)
+                if op.source != base.SOURCE_TFNSW:   # NSW drops finished runs too: tests/test_nsw.py
+                    self.assertIsNone(op.obs_filter, op.id)
 
     def test_look_colours(self):
         vy = ops.OPERATORS["vy"]

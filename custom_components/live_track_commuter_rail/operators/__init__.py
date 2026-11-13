@@ -17,6 +17,7 @@ from .irish_rail import IRISH_RAIL
 from .metra import METRA
 from .nictd import NICTD
 from .ns import NS
+from .nsw_trainlink import NSW_TRAINLINK
 from .qr_citytrain import QR_CITYTRAIN
 from .renfe import RENFE_OPERATORS
 from .sweden import SWEDEN
@@ -26,7 +27,7 @@ from .vy import VY
 OPERATORS: dict[str, Operator] = {op.id: op for op in (METRA, NICTD, QR_CITYTRAIN,
                                                         VR_LAHIJUNAT, *RENFE_OPERATORS,
                                                         VY, GO_AHEAD_NORGE, FLYTOGET, *SWEDEN,
-                                                        IRISH_RAIL, NS)}
+                                                        IRISH_RAIL, NS, NSW_TRAINLINK)}
 
 
 def regions_in_use() -> dict[str, str]:

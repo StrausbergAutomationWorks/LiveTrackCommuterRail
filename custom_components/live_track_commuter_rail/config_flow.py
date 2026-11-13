@@ -57,7 +57,9 @@ from .const import (
 )
 from .coordinator import AuthError, fetch_feed
 from .operators import OPERATORS, Operator, operators_in, regions_in_use
-from .operators.base import SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_NS, SOURCE_TRAFIKVERKET
+from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_NS, SOURCE_TFNSW,
+                             SOURCE_TRAFIKVERKET)
+from .operators.nsw_trainlink import check_key as tfnsw_check_key
 from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
 from saw_livetrack.entur import CLIENT_NAME as ENTUR_CLIENT_NAME
 from saw_livetrack.irish_rail import KeyedError as IrishRailError
@@ -129,6 +131,10 @@ async def _check_key(hass, op: Operator, key: str) -> str | None:
     if op.source == SOURCE_NS:
         # One vehicle read with the key (in the header, never in a message; blocking, so the executor).
         error = await hass.async_add_executor_job(ns_check_key, key)
+        return "invalid_auth" if error == "invalid_key" else error
+    if op.source == SOURCE_TFNSW:
+        # One positions read with the key through a private client (in the header, never in a message; the executor).
+        error = await hass.async_add_executor_job(tfnsw_check_key, key)
         return "invalid_auth" if error == "invalid_key" else error
     params = {op.key_param: key} if op.needs_key else None
     try:

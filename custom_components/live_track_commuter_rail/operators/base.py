@@ -45,6 +45,10 @@ SOURCE_IRISH_RAIL = "irish_rail"
 # key) hands over this consumer's trains, each a fix (first-seen time) and, where the timetable names it, its calls
 # and SpoorKaart path; parse(trains) reads them, and ns_lines.py draws their lines.
 SOURCE_NS = "ns"
+# Transport for NSW (SSOT 16): the shared TfNSW client (saw_livetrack.tfnsw, one poller per Home Assistant, each entry's
+# key) hands over a positions feed and a trip-updates feed already cut to this integration's consumer (route_type 100)
+# and cleaned; parse(feed) reads the positions as for GTFS_RT. Its timetable is the client's copy on disk.
+SOURCE_TFNSW = "tfnsw"
 
 
 @dataclass(frozen=True)
@@ -128,6 +132,8 @@ class Operator:
     irish_rail_consumer: str | None = None
     # NS: the consumer this operator registers with the shared client ("commuter"; saw_livetrack.ns.CONSUMERS).
     ns_consumer: str | None = None
+    # TfNSW: the consumer this operator registers with the shared client ("commuter"; saw_livetrack.tfnsw.CONSUMERS).
+    tfnsw_consumer: str | None = None
     # The cut timetable zip -> a table kept with the distilled timetable under "table", from the SAME bytes (Irish
     # Rail: saw_livetrack.irish_rail.read_timetable, the runs' table, beside the shapes it draws them on). None: none.
     static_table: Callable[[bytes], dict[str, Any]] | None = None
@@ -185,6 +191,7 @@ REGIONS: dict[str, str] = {
     "US-IL": "United States — Illinois",
     "US-IN": "United States — Indiana",
     "US-WI": "United States — Wisconsin",
+    "AU-NSW": "Australia — New South Wales",
     "AU-QLD": "Australia — Queensland",
     "FI": "Finland",
     "IE": "Ireland",

@@ -43,16 +43,18 @@ from saw_livetrack.gtfs import Fleet, decode
 from saw_livetrack.trafikverket import AuthRefused, KeyedError
 from saw_livetrack.irish_rail import KeyedError as IrishRailError
 from saw_livetrack.ns import AuthRefused as NsAuthRefused, KeyedError as NsKeyedError
+from saw_livetrack.tfnsw import AuthRefused as TfnswAuthRefused, KeyedError as TfnswKeyedError
 from . import entur_push, irish_runs, ns_lines, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
 from .operators import Operator
 from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_NS, SOURCE_RENFE,
-                             SOURCE_TRAFIKVERKET)
+                             SOURCE_TFNSW, SOURCE_TRAFIKVERKET)
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
 from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
 from .shared_ns import get_shared_ns_client, release_shared_ns_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
+from .shared_tfnsw import get_shared_tfnsw_client, release_shared_tfnsw_client
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
 from .schedule import timetable_stale
@@ -140,8 +142,16 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if op.source == SOURCE_IRISH_RAIL:
             self._irish = get_shared_irish_rail_client(hass, op.irish_rail_consumer)
             self._irish_runs = irish_runs.IrishRuns()
+        # Transport for NSW (SSOT 16): the ONE shared client per Home Assistant, this operator's consumer registered with
+        # the key stored in this entry; its copy of the timetable on disk is the one distilled here.
+        self._tfnsw = None
+        self._tfnsw_version: Any = None
+        if op.source == SOURCE_TFNSW:
+            self._tfnsw = get_shared_tfnsw_client(hass, op.tfnsw_consumer, str(entry.data.get(CONF_API_KEY, "")))
         raw_source = None
-        if self._renfe is not None:
+        if self._tfnsw is not None:
+            raw_source = self._tfnsw_zip
+        elif self._renfe is not None:
             raw_source = self._renfe.static_zip
         elif self._entur is not None:
             raw_source = self._entur_zip
@@ -209,6 +219,44 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._ns is not None:
             self._ns = None
             release_shared_ns_client(self.hass, self.operator.ns_consumer)
+        if self._tfnsw is not None:
+            self._tfnsw = None
+            release_shared_tfnsw_client(self.hass, self.operator.tfnsw_consumer)
+
+    def _tfnsw_zip(self) -> bytes | None:
+        """The shared TfNSW client's timetable zip, or None before it has one (blocking: the executor; StaticTimetable
+        asks again in SOURCE_WAIT_S)."""
+        client = self._tfnsw
+        path = client.static_path() if client is not None else None
+        if path is None:
+            return None
+        with open(path, "rb") as fh:
+            return fh.read()
+
+    def _read_tfnsw(self) -> tuple[Any, Any, Any]:
+        """(positions, trip updates, the client's timetable version). Blocking: the executor. Raises the client's
+        errors."""
+        client = self._tfnsw
+        positions, updates = client.for_consumer(self.operator.tfnsw_consumer)
+        return positions, updates, client.static_version()
+
+    async def _fetch_tfnsw(self):
+        """(positions, trip updates, version) from the shared TfNSW client, or None on a failed fetch. Every key refused
+        for 10 minutes asks the user for a new one. Only the exception's TYPE is logged: the key is in a header, never in
+        a message."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(self._read_tfnsw)
+        except TfnswAuthRefused as err:
+            raise ConfigEntryAuthFailed(f"{op.name}: Transport for NSW refused the key") from err
+        except TfnswKeyedError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
+
+    @property
+    def tfnsw_stats(self) -> dict[str, Any] | None:
+        """The shared TfNSW client's counters, for diagnostics; None for other sources. Never a key."""
+        return self._tfnsw.stats() if self._tfnsw is not None else None
 
     def _read_ns(self) -> tuple[list, dict[str, Any]]:
         """(this operator's trains, the geometry). Blocking: the executor. Raises the client's errors."""
@@ -414,6 +462,17 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Both feeds at once, already cut to this integration's consumer.
             got = await self._fetch_renfe()
             feed, tu = got if got is not None else (None, None)
+        elif op.source == SOURCE_TFNSW:
+            # Both feeds, already cut to route_type 100 and cleaned (trip updates None when that file failed). A new
+            # timetable on the client's disk is distilled again at once, not at the day's refresh.
+            got = await self._fetch_tfnsw()
+            feed = None
+            if got is not None:
+                feed, tu, version = got
+                if version != self._tfnsw_version:
+                    if self._tfnsw_version is not None:
+                        self._static.request_refresh()
+                    self._tfnsw_version = version
         elif op.source == SOURCE_ENTUR:
             # Both feeds, already cut to this consumer and codespace (trip updates None when that file failed).
             got = await self._fetch_entur()
