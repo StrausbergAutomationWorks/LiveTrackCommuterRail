@@ -71,8 +71,11 @@ _KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
 
 def _dropdown(options: list[SelectOptionDict], translation_key: str | None = None) -> SelectSelector:
-    return SelectSelector(SelectSelectorConfig(
-        options=options, mode=SelectSelectorMode.DROPDOWN, sort=False, translation_key=translation_key))
+    config = SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN, sort=False)
+    if translation_key:
+        # Never None: Home Assistant's selector schema refuses it, and the step then answers a bare HTTP 400.
+        config["translation_key"] = translation_key
+    return SelectSelector(config)
 
 
 async def _check_digitraffic(hass, op: Operator) -> str | None:

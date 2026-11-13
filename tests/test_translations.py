@@ -54,6 +54,12 @@ class Translations(unittest.TestCase):
         self.assertIn('SelectOptionDict(value=c.lower(), label=l) for c, l in regions.items()], "region")', src)
         self.assertIn("{c.lower(): c for c in regions}", src)
 
+    def test_no_selector_is_given_a_translation_key_of_none(self):
+        # Found on the box 2026-11-13: translation_key=None made the operator step answer HTTP 400.
+        src = (COMP / "config_flow.py").read_text(encoding="utf-8")
+        self.assertNotIn("translation_key=translation_key", src)
+        self.assertIn('if translation_key:\n', src.replace("\r\n", "\n"))
+
 
 if __name__ == "__main__":
     unittest.main()
