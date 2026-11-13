@@ -37,6 +37,7 @@ async def async_get_config_entry_diagnostics(
         "renfe_client": coordinator.renfe_stats,
         "trafikverket_client": coordinator.trafikverket_stats,
         "tfnsw_client": coordinator.tfnsw_stats,
+        "transport_vic_client": coordinator.vic_stats,
         "irish_rail": coordinator.irish_rail_stats,
         "plausible": coordinator.plausible_stats,
     }

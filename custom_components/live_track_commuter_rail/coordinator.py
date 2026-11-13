@@ -44,10 +44,13 @@ from saw_livetrack.trafikverket import AuthRefused, KeyedError
 from saw_livetrack.irish_rail import KeyedError as IrishRailError
 from saw_livetrack.ns import AuthRefused as NsAuthRefused, KeyedError as NsKeyedError
 from saw_livetrack.tfnsw import AuthRefused as TfnswAuthRefused, KeyedError as TfnswKeyedError
+from saw_livetrack.transport_vic import AuthRefused as VicAuthRefused, KeyedError as VicKeyedError
+from saw_livetrack.vline import VLineRuns
 from . import entur_push, irish_runs, ns_lines, plausible, poll, rail, shapepath, sweden_lines, tracknet, tunnel
 from .operators import Operator
 from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_NS, SOURCE_RENFE,
-                             SOURCE_TFNSW, SOURCE_TRAFIKVERKET)
+                             SOURCE_TFNSW, SOURCE_TRAFIKVERKET, SOURCE_TRANSPORT_VIC)
+from .operators.vline import Timetable as VLineTimetable
 from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail_client
 from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
 from .shared_ns import get_shared_ns_client, release_shared_ns_client
@@ -55,6 +58,7 @@ from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
 from .shared_tfnsw import get_shared_tfnsw_client, release_shared_tfnsw_client
+from .shared_transport_vic import get_shared_transport_vic_client, release_shared_transport_vic_client
 from saw_livetrack.gtfs import next_stops as next_stops_from
 from saw_livetrack.gtfs import stop_delays, trip_coverage
 from .schedule import timetable_stale
@@ -152,9 +156,22 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if op.tfnsw_sydney_trains:
                 # Asked at every claim, right after it (saw-livetrack 0.2.37); the last release forgets it.
                 self._tfnsw.set_sydney_trains(op.tfnsw_consumer, True)
+        # Transport Victoria (SSOT 17): the ONE shared client per Home Assistant, this operator's consumer registered with
+        # the key stored in this entry; V/Line's rules run on its share of the feed (saw_livetrack.vline.VLineRuns, per
+        # entry); its copy of folder 1 on disk is the timetable distilled here.
+        self._vic = None
+        self._vic_runs: VLineRuns | None = None
+        self._vic_version: Any = None
+        self.vic_skipped: dict[str, int] | None = None
+        if op.source == SOURCE_TRANSPORT_VIC:
+            self._vic = get_shared_transport_vic_client(hass, op.transport_vic_consumer,
+                                                        str(entry.data.get(CONF_API_KEY, "")))
+            self._vic_runs = VLineRuns()
         raw_source = None
         if self._tfnsw is not None:
             raw_source = partial(self._tfnsw_zip, op.tfnsw_timetable)
+        elif self._vic is not None:
+            raw_source = self._vic_zip
         elif self._renfe is not None:
             raw_source = self._renfe.static_zip
         elif self._entur is not None:
@@ -234,6 +251,58 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._tfnsw is not None:
             self._tfnsw = None
             release_shared_tfnsw_client(self.hass, self.operator.tfnsw_consumer)
+        if self._vic is not None:
+            self._vic = None
+            release_shared_transport_vic_client(self.hass, self.operator.transport_vic_consumer)
+
+    def _vic_zip(self) -> bytes | None:
+        """The shared Transport Victoria client's copy of this consumer's folder, or None before it has one (blocking: the
+        executor; StaticTimetable asks again in SOURCE_WAIT_S)."""
+        client = self._vic
+        if client is None:
+            return None
+        path = client.static_path(self.operator.transport_vic_consumer)
+        if path is None:
+            return None
+        with open(path, "rb") as fh:
+            return fh.read()
+
+    def _read_vic(self) -> tuple[list, Any]:
+        """(V/Line's runs to draw, the version of the client's copy the timetable is distilled from). The client's
+        share of the feed through V/Line's rules (saw_livetrack.vline), with the whole feed's newest fix for the frozen
+        rule and this entry's timetable. Blocking: the executor. Raises the client's errors."""
+        op = self.operator
+        client = self._vic
+        consumer = op.transport_vic_consumer
+        positions, updates = client.for_consumer(consumer)
+        whole = client.feed_newest(consumer)
+        version = client.static_version(consumer)
+        reports, skipped = self._vic_runs.update(positions, updates, time.time(),
+                                                 VLineTimetable(self._static_data()), whole)
+        self.vic_skipped = skipped
+        return reports, version
+
+    async def _fetch_vic(self):
+        """(runs, version) from the shared Transport Victoria client, or None on a failed fetch (HTTP 500 "(still) no
+        cached message" among them: the last result is served meanwhile). Every key refused for 10 minutes asks the user
+        for a new one. Only the exception's TYPE is logged: the key is in a header, never in a message."""
+        op = self.operator
+        try:
+            return await self.hass.async_add_executor_job(self._read_vic)
+        except VicAuthRefused as err:
+            raise ConfigEntryAuthFailed(f"{op.name}: Transport Victoria refused the key") from err
+        except VicKeyedError as err:
+            _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
+            return None
+
+    @property
+    def vic_stats(self) -> dict[str, Any] | None:
+        """The shared Transport Victoria client's counters and this entry's last skips, for diagnostics; None for other
+        sources. Never a key."""
+        if self._vic is None:
+            return None
+        return {**self._vic.stats(), "runs": len(self._vic_runs.runs) if self._vic_runs else 0,
+                "skipped": self.vic_skipped}
 
     def _tfnsw_zip(self, timetable: str | None = None) -> bytes | None:
         """The shared TfNSW client's copy of `timetable` (None: nswtrains), or None before it has one (blocking: the
@@ -518,6 +587,17 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     if self._tfnsw_version2 is not None:
                         self._static2.request_refresh()
                     self._tfnsw_version2 = version2
+        elif op.source == SOURCE_TRANSPORT_VIC:
+            # V/Line's runs stand in for a feed (saw_livetrack.vline): parse(reports) reads them, parse_stops their next
+            # stops. A new copy of folder 1 on the client's disk is distilled again at once, not at the day's refresh.
+            got = await self._fetch_vic()
+            feed = None
+            if got is not None:
+                feed, version = got
+                if version != self._vic_version:
+                    if self._vic_version is not None:
+                        self._static.request_refresh()
+                    self._vic_version = version
         elif op.source == SOURCE_ENTUR:
             # Both feeds, already cut to this consumer and codespace (trip updates None when that file failed).
             got = await self._fetch_entur()
@@ -630,7 +710,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if self._rail_check is not None:
             self._rail_check.set_shapes(static)
-        if (op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET, SOURCE_IRISH_RAIL, SOURCE_NS)
+        if (op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET, SOURCE_IRISH_RAIL, SOURCE_NS,
+                              SOURCE_TRANSPORT_VIC)
                 and feed.header.HasField("timestamp")):
             self.feed_timestamp = int(feed.header.timestamp)
         # A fix older than the operator's limit is refused before Fleet sees it

@@ -49,6 +49,11 @@ SOURCE_NS = "ns"
 # key) hands over a positions feed and a trip-updates feed already cut to this integration's consumer (route_type 100)
 # and cleaned; parse(feed) reads the positions as for GTFS_RT. Its timetable is the client's copy on disk.
 SOURCE_TFNSW = "tfnsw"
+# Transport Victoria (SSOT 17): the shared Transport Victoria client (saw_livetrack.transport_vic, one poller per Home
+# Assistant, each entry's key) hands over V/Line's positions and trip updates already cut to this integration's consumer
+# (the commuter routes); the coordinator runs V/Line's rules on them (saw_livetrack.vline.VLineRuns) and parse(reports)
+# reads the runs. Its timetable is the client's copy of folder 1 on disk.
+SOURCE_TRANSPORT_VIC = "transport_vic"
 
 
 @dataclass(frozen=True)
@@ -137,6 +142,9 @@ class Operator:
     # TfNSW: True asks the shared client for Sydney Trains' vehicles too (saw-livetrack 0.2.37,
     # client.set_sydney_trains), merged with nswtrains' one per run-day (SSOT 16).
     tfnsw_sydney_trains: bool = False
+    # Transport Victoria: the consumer this operator registers with the shared client ("commuter";
+    # saw_livetrack.transport_vic.CONSUMERS).
+    transport_vic_consumer: str | None = None
     # TfNSW: which of the shared client's timetables this operator's static is distilled from (saw_livetrack.tfnsw
     # NSWTRAINS or SYDNEYTRAINS). None: nswtrains.
     tfnsw_timetable: str | None = None
@@ -208,6 +216,7 @@ REGIONS: dict[str, str] = {
     "US-WI": "United States — Wisconsin",
     "AU-NSW": "Australia — New South Wales",
     "AU-QLD": "Australia — Queensland",
+    "AU-VIC": "Australia — Victoria",
     "FI": "Finland",
     "IE": "Ireland",
     "ES-AN": "Spain — Andalusia",

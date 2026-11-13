@@ -589,7 +589,8 @@ class RegistryTests(unittest.TestCase):
             if op.source != base.SOURCE_ENTUR:
                 self.assertIsNone(op.entur_consumer, op.id)
                 self.assertFalse(op.entur_push, op.id)
-                self.assertIsNone(op.static_route_keep, op.id)
+                if op.source != base.SOURCE_TRANSPORT_VIC:   # V/Line keeps its commuter routes: test_vline.py
+                    self.assertIsNone(op.static_route_keep, op.id)
                 if op.source != base.SOURCE_IRISH_RAIL:   # Irish Rail cuts its zip: tests/test_irish_rail.py
                     self.assertIsNone(op.static_rewrite, op.id)
                 if op.source != base.SOURCE_TFNSW:   # NSW drops finished runs too: tests/test_nsw.py
