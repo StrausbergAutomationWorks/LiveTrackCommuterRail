@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "¿Dónde está la red de cercanías que quieres seguir? Solo aparecen las regiones con al menos una red compatible.",
+        "data": {
+          "region": "Región"
+        }
+      },
+      "operator": {
+        "title": "Elige la red",
+        "description": "Cada red se añade por separado. Añade otra más tarde para seguir más de una.",
+        "data": {
+          "operator": "Red"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: clave de API",
+        "description": "{operator} pide a cada usuario su propia clave. Solicítala en {key_url}. Sus condiciones están en {terms_url}. La clave se guarda en Home Assistant con esta integración y nunca se escribe en el registro.",
+        "data": {
+          "api_key": "Clave de API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: nueva clave de API",
+        "description": "{operator} rechazó la clave guardada. Introduce una nueva; las claves se emiten en {key_url}.",
+        "data": {
+          "api_key": "Clave de API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "La red rechazó esta clave.",
+      "cannot_connect": "No se pudo acceder a la fuente de datos de la red o leerla. Inténtalo de nuevo dentro de un minuto."
+    },
+    "abort": {
+      "already_configured": "Esta red ya está configurada.",
+      "all_configured": "Todas las redes compatibles ya están configuradas.",
+      "cannot_connect": "No se pudo acceder a la fuente de datos de la red o leerla. Inténtalo de nuevo dentro de un minuto.",
+      "reauth_successful": "La nueva clave funciona."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Intervalo de consulta",
+          "show_parked_equipment": "Mostrar material estacionado"
+        },
+        "data_description": {
+          "scan_interval": "Cada cuánto se lee la fuente de datos de la red. La mayoría se actualiza cada 30 segundos aproximadamente.",
+          "show_parked_equipment": "Desactivado: el material que no está en servicio solo aparece mientras se mueve y desaparece del mapa tras 10 minutos parado. Activado: se muestran todos los vehículos de la fuente, incluidas las composiciones estacionadas."
+        }
+      }
+    }
+  },
+  "issues": {
+    "map_card_yaml_resource": {
+      "title": "Añade la tarjeta de mapa de Live Track a tus recursos",
+      "description": "Los recursos de tus paneles están definidos en YAML, así que la tarjeta de mapa no se puede registrar automáticamente. Añade esto bajo lovelace: resources: en configuration.yaml y reinicia:\n\n- url: {url}\n  type: module"
+    },
+    "map_card_duplicate_resources": {
+      "title": "La tarjeta de mapa de Live Track está registrada más de una vez",
+      "description": "Estos recursos de panel también cargan la tarjeta de mapa: {urls}. Solo se usa uno y los demás no hacen nada. Elimínalos en Ajustes > Paneles de control > Recursos (Settings > Dashboards > Resources)."
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "Estados Unidos — Illinois",
+        "us-in": "Estados Unidos — Indiana",
+        "us-wi": "Estados Unidos — Wisconsin",
+        "au-nsw": "Australia — Nueva Gales del Sur",
+        "au-qld": "Australia — Queensland",
+        "au-vic": "Australia — Victoria",
+        "fi": "Finlandia",
+        "ie": "Irlanda",
+        "es-an": "España — Andalucía",
+        "es-ar": "España — Aragón",
+        "es-as": "España — Asturias",
+        "es-cb": "España — Cantabria",
+        "es-cl": "España — Castilla y León",
+        "es-ct": "España — Cataluña",
+        "es-ga": "España — Galicia",
+        "es-mc": "España — Región de Murcia",
+        "es-md": "España — Comunidad de Madrid",
+        "es-pv": "España — País Vasco",
+        "es-vc": "España — Comunidad Valenciana",
+        "nl": "Países Bajos",
+        "no": "Noruega",
+        "se": "Suecia"
+      }
+    }
+  }
+}

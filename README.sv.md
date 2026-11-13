@@ -91,8 +91,9 @@ Integrationen finns inte i Marketplace-katalogen än. Lägg till den via länk:
 ## Inställning
 
 **Settings > Devices & services > Add integration > Live Track Commuter Rail**.
-Välj region, sedan bana, och ange nyckeln om banan kräver en. Dialogen är än så
-länge på engelska, och menynamnen ovan är det engelska gränssnittets.
+Välj region, sedan bana, och ange nyckeln om banan kräver en. Dialogen och regionernas namn visas på svenska när Home
+Assistant är inställt på svenska. Menynamnen ovan är det engelska
+gränssnittets.
 
 ## Data och licens
 

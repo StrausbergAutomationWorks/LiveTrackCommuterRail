@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "Hvor er lokaltogbanen du vil følge? Bare regioner med minst én støttet bane vises.",
+        "data": {
+          "region": "Region"
+        }
+      },
+      "operator": {
+        "title": "Velg bane",
+        "description": "Hver bane legges til for seg. Legg til en til senere for å følge flere.",
+        "data": {
+          "operator": "Bane"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: API-nøkkel",
+        "description": "{operator} krever en egen nøkkel for hver bruker. Be om en på {key_url}. Vilkårene står på {terms_url}. Nøkkelen lagres i Home Assistant med denne integrasjonen og skrives aldri til loggen.",
+        "data": {
+          "api_key": "API-nøkkel"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: ny API-nøkkel",
+        "description": "{operator} avviste den lagrede nøkkelen. Skriv inn en ny; nøkler utstedes på {key_url}.",
+        "data": {
+          "api_key": "API-nøkkel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Banen avviste denne nøkkelen.",
+      "cannot_connect": "Banens datakilde kunne ikke nås eller leses. Prøv igjen om et minutt."
+    },
+    "abort": {
+      "already_configured": "Denne banen er allerede satt opp.",
+      "all_configured": "Alle støttede baner er allerede satt opp.",
+      "cannot_connect": "Banens datakilde kunne ikke nås eller leses. Prøv igjen om et minutt.",
+      "reauth_successful": "Den nye nøkkelen virker."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Oppdateringsintervall",
+          "show_parked_equipment": "Vis hensatt materiell"
+        },
+        "data_description": {
+          "scan_interval": "Hvor ofte banens datakilde leses. De fleste kilder oppdateres omtrent hvert 30. sekund.",
+          "show_parked_equipment": "Av: materiell som ikke er i trafikk, vises bare mens det beveger seg, og forsvinner fra kartet etter 10 minutter i ro. På: alt materiell i kilden vises, også hensatte togsett."
+        }
+      }
+    }
+  },
+  "issues": {
+    "map_card_yaml_resource": {
+      "title": "Legg til Live Tracks kartkort i ressursene",
+      "description": "Dashbordressursene dine er satt i YAML, så kartkortet kan ikke registreres automatisk. Legg til dette under lovelace: resources: i configuration.yaml, og start på nytt:\n\n- url: {url}\n  type: module"
+    },
+    "map_card_duplicate_resources": {
+      "title": "Live Tracks kartkort er registrert mer enn én gang",
+      "description": "Disse dashbordressursene laster også kartkortet: {urls}. Bare én brukes, og de andre gjør ingenting. Fjern dem under Innstillinger > Dashbord > Ressurser (Settings > Dashboards > Resources)."
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "USA — Illinois",
+        "us-in": "USA — Indiana",
+        "us-wi": "USA — Wisconsin",
+        "au-nsw": "Australia — New South Wales",
+        "au-qld": "Australia — Queensland",
+        "au-vic": "Australia — Victoria",
+        "fi": "Finland",
+        "ie": "Irland",
+        "es-an": "Spania — Andalucía",
+        "es-ar": "Spania — Aragón",
+        "es-as": "Spania — Asturias",
+        "es-cb": "Spania — Cantabria",
+        "es-cl": "Spania — Castilla y León",
+        "es-ct": "Spania — Catalonia",
+        "es-ga": "Spania — Galicia",
+        "es-mc": "Spania — Murcia",
+        "es-md": "Spania — Madrid",
+        "es-pv": "Spania — Baskerland",
+        "es-vc": "Spania — Valencia",
+        "nl": "Nederland",
+        "no": "Norge",
+        "se": "Sverige"
+      }
+    }
+  }
+}

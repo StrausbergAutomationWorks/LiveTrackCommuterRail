@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "Cá bhfuil an t-iarnród comaitéireachta is mian leat a leanúint? Ní liostaítear ach réigiúin a bhfuil iarnród tacaithe amháin ar a laghad iontu.",
+        "data": {
+          "region": "Réigiún"
+        }
+      },
+      "operator": {
+        "title": "Roghnaigh an t-iarnród",
+        "description": "Cuirtear gach iarnród leis ar leith. Cuir ceann eile leis níos déanaí chun níos mó ná ceann amháin a leanúint.",
+        "data": {
+          "operator": "Iarnród"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: eochair API",
+        "description": "Iarrann {operator} a eochair féin ar gach úsáideoir. Iarr ceann ag {key_url}. Tá na téarmaí ag {terms_url}. Stóráiltear an eochair in Home Assistant leis an gcomhtháthú seo, agus ní scríobhtar sa loga riamh í.",
+        "data": {
+          "api_key": "Eochair API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: eochair API nua",
+        "description": "Dhiúltaigh {operator} don eochair stóráilte. Cuir isteach ceann nua; eisítear eochracha ag {key_url}.",
+        "data": {
+          "api_key": "Eochair API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Dhiúltaigh an t-iarnród don eochair seo.",
+      "cannot_connect": "Níorbh fhéidir foinse sonraí an iarnróid a bhaint amach ná a léamh. Bain triail eile as i gceann nóiméid."
+    },
+    "abort": {
+      "already_configured": "Tá an t-iarnród seo socraithe cheana.",
+      "all_configured": "Tá gach iarnród tacaithe socraithe cheana.",
+      "cannot_connect": "Níorbh fhéidir foinse sonraí an iarnróid a bhaint amach ná a léamh. Bain triail eile as i gceann nóiméid.",
+      "reauth_successful": "Oibríonn an eochair nua."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Eatramh léite",
+          "show_parked_equipment": "Taispeáin feithiclí páirceáilte"
+        },
+        "data_description": {
+          "scan_interval": "Cé chomh minic a léitear foinse sonraí an iarnróid. Nuashonraítear formhór na bhfoinsí timpeall gach 30 soicind.",
+          "show_parked_equipment": "As: ní thaispeántar feithiclí nach bhfuil i seirbhís ach fad atá siad ag bogadh, agus fágann siad an léarscáil tar éis 10 nóiméad ina seasamh. Ar siúl: taispeántar gach feithicil san fhoinse, traenacha páirceáilte san áireamh."
+        }
+      }
+    }
+  },
+  "issues": {
+    "map_card_yaml_resource": {
+      "title": "Cuir cárta léarscáile Live Track le d'acmhainní",
+      "description": "Socraítear acmhainní do dheaiseanna i YAML, mar sin ní féidir an cárta léarscáile a chlárú go huathoibríoch. Cuir é seo faoi lovelace: resources: in configuration.yaml, agus atosaigh:\n\n- url: {url}\n  type: module"
+    },
+    "map_card_duplicate_resources": {
+      "title": "Tá cárta léarscáile Live Track cláraithe níos mó ná uair amháin",
+      "description": "Lódálann na hacmhainní deaise seo an cárta léarscáile freisin: {urls}. Ní úsáidtear ach ceann amháin, agus ní dhéanann na cinn eile faic. Bain iad i Settings > Dashboards > Resources."
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "Na Stáit Aontaithe — Illinois",
+        "us-in": "Na Stáit Aontaithe — Indiana",
+        "us-wi": "Na Stáit Aontaithe — Wisconsin",
+        "au-nsw": "An Astráil — New South Wales",
+        "au-qld": "An Astráil — Queensland",
+        "au-vic": "An Astráil — Victoria",
+        "fi": "An Fhionlainn",
+        "ie": "Éire",
+        "es-an": "An Spáinn — Andalucía",
+        "es-ar": "An Spáinn — Aragón",
+        "es-as": "An Spáinn — Asturias",
+        "es-cb": "An Spáinn — Cantabria",
+        "es-cl": "An Spáinn — Castilla y León",
+        "es-ct": "An Spáinn — An Chatalóin",
+        "es-ga": "An Spáinn — An Ghailís",
+        "es-mc": "An Spáinn — Murcia",
+        "es-md": "An Spáinn — Maidrid",
+        "es-pv": "An Spáinn — Tír na mBascach",
+        "es-vc": "An Spáinn — Valencia",
+        "nl": "An Ísiltír",
+        "no": "An Iorua",
+        "se": "An tSualainn"
+      }
+    }
+  }
+}

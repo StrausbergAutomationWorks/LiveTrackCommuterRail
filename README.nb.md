@@ -83,8 +83,8 @@ Integrasjonen står ikke i Marketplace-katalogen ennå. Legg den til med lenke:
 ## Oppsett
 
 **Settings > Devices & services > Add integration > Live Track Commuter Rail**.
-Velg region og så bane. Dialogen er foreløpig på engelsk, og menynavnene over er
-fra det engelske grensesnittet.
+Velg region og så bane. Dialogen og regionnavnene vises på norsk når Home Assistant er
+satt til norsk bokmål. Menynavnene over er fra det engelske grensesnittet.
 
 ## Data og lisens
 

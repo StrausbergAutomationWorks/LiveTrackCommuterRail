@@ -18,6 +18,18 @@ fhoilsíonn Irish Rail ceadúnas ná téarmaí dá sheirbhís bheo. Amchlár: an
 Náisiúnta Iompair, CC BY 4.0, "mar atá"; níl an tÚdarás freagrach as earráidí
 ann. Níl eochair ag teastáil.
 
+* Tuairiscíonn Irish Rail traein ach amháin nuair a théann sí thar phointí
+  comharthaíochta, cúpla nóiméad óna chéile, mar sin tarraingítear gach traein
+  óna hamchlár agus óna moill is déanaí, ar bhealach a turais. Tagann traenacha
+  Chorcaí ón amchlár amháin.
+* Uimhir na traenach gan a litir ar an marcóir (taispeántar 508 do P508);
+  cód na traenach agus a céad stáisiún agus a stáisiún deiridh nuair a
+  chuirtear an cúrsóir air.
+* Dath na líne ó léarscáil Transport for Ireland: an Tuaisceart gorm, Corcaigh
+  corcra-liath, an tIarthar buí agus an tIardheisceart oráiste. Malartaítear na
+  dathanna i dtreo an mhoil, Baile Átha Cliath nó Corcaigh (Ceannt).
+* Mall ó 5 nóiméad (riail Iarnród Éireann féin), an-mhall ó 10.
+
 ## Na hiarnróid go léir
 
 Metra agus South Shore Line (Chicago), Renfe Cercanías agus Rodalies (an
@@ -73,8 +85,9 @@ Níl an comhtháthú i gcatalóg an Marketplace fós. Cuir leis é le nasc:
 ## Socrú
 
 **Settings > Devices & services > Add integration > Live Track Commuter Rail**.
-Roghnaigh réigiún agus ansin iarnród. Tá an dialóg i mBéarla faoi láthair, agus
-is ainmneacha an chomhéadain Bhéarla iad ainmneacha na roghchlár thuas.
+Roghnaigh réigiún agus ansin iarnród. Taispeántar an dialóg agus ainmneacha na réigiún i nGaeilge
+nuair atá Home Assistant socraithe ar Ghaeilge. Is ainmneacha an chomhéadain
+Bhéarla iad ainmneacha na roghchlár thuas.
 
 ## Sonraí agus ceadúnas
 

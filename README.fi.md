@@ -79,8 +79,9 @@ Integraatio ei ole vielä Marketplacen luettelossa. Lisää se linkillä:
 ## Käyttöönotto
 
 **Settings > Devices & services > Add integration > Live Track Commuter Rail**.
-Valitse alue ja sitten rautatie. Asetusikkuna on toistaiseksi englanniksi, ja
-valikkojen nimet yllä ovat englanninkielisen käyttöliittymän mukaiset.
+Valitse alue ja sitten rautatie. Asetusikkuna ja alueiden nimet näkyvät suomeksi, kun Home
+Assistantin kieli on suomi. Valikkojen nimet yllä ovat englanninkielisen
+käyttöliittymän mukaiset.
 
 ## Data ja lisenssi
 

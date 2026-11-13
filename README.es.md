@@ -18,6 +18,18 @@ Zaragoza, y **Rodalies de Catalunya** (Barcelona): quince redes, cada una añadi
 por separado. Datos: Renfe ([data.renfe.com](https://data.renfe.com/)),
 CC BY 4.0, modificados. No hace falta clave ni cuenta.
 
+* El marcador lleva la línea (C5, R2N) en el color de su ruta según el horario
+  de Renfe, en blanco con contorno oscuro, como la dibuja Renfe; una línea
+  blanca lleva un fino anillo negro. El número de tren y el nombre de la línea
+  aparecen al pasar el cursor.
+* Renfe sitúa los trenes sobre la ruta del viaje, no por GPS: se paran y luego
+  saltan. La flecha sigue la ruta, y cada tren solo avanza por su propia línea:
+  una posición a más de 150 m de ella, más de 100 m hacia atrás o a más de
+  200 km/h se descarta y se mantiene la última buena hasta 10 minutos. Una
+  posición a más de 1 km de todas las rutas de la red se descarta.
+* Renfe no publica una regla de puntualidad, así que no se envían umbrales de
+  retraso y se usan los de la tarjeta.
+
 ## Todas las redes
 
 Metra y South Shore Line (Chicago), Renfe Cercanías y Rodalies (España),
@@ -70,8 +82,9 @@ La integración aún no está en el catálogo del Marketplace. Añádela por enl
 ## Configuración
 
 **Settings > Devices & services > Add integration > Live Track Commuter Rail**.
-Elige la región y después la red. El diálogo está de momento en inglés, y los
-nombres de menú de arriba son los de la interfaz en inglés.
+Elige la región y después la red. El diálogo y los nombres de las regiones aparecen en español
+cuando Home Assistant está en español. Los nombres de menú de arriba son los
+de la interfaz en inglés.
 
 ## Datos y licencia
 

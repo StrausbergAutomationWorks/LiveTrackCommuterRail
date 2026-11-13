@@ -70,9 +70,9 @@ from saw_livetrack.ns import check_key as ns_check_key
 _KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
 
-def _dropdown(options: list[SelectOptionDict]) -> SelectSelector:
+def _dropdown(options: list[SelectOptionDict], translation_key: str | None = None) -> SelectSelector:
     return SelectSelector(SelectSelectorConfig(
-        options=options, mode=SelectSelectorMode.DROPDOWN, sort=False))
+        options=options, mode=SelectSelectorMode.DROPDOWN, sort=False, translation_key=translation_key))
 
 
 async def _check_digitraffic(hass, op: Operator) -> str | None:
@@ -167,10 +167,11 @@ class CommuterRailConfigFlow(ConfigFlow, domain=DOMAIN):
         if not regions:
             return self.async_abort(reason="all_configured")
         if user_input is not None:
-            self._region = user_input[CONF_REGION]
+            # The dropdown's values are the codes in lower case (translations/<lang>.json, selector "region").
+            self._region = {c.lower(): c for c in regions}.get(user_input[CONF_REGION], user_input[CONF_REGION])
             return await self.async_step_operator()
         schema = vol.Schema({vol.Required(CONF_REGION): _dropdown(
-            [SelectOptionDict(value=c, label=l) for c, l in regions.items()])})
+            [SelectOptionDict(value=c.lower(), label=l) for c, l in regions.items()], "region")})
         return self.async_show_form(step_id="user", data_schema=schema)
 
     async def async_step_operator(self, user_input: dict[str, Any] | None = None

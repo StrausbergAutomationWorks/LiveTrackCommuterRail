@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "Missä on lähiliikennerautatie, jota haluat seurata? Luettelossa ovat vain alueet, joilla on vähintään yksi tuettu rautatie.",
+        "data": {
+          "region": "Alue"
+        }
+      },
+      "operator": {
+        "title": "Valitse rautatie",
+        "description": "Jokainen rautatie lisätään erikseen. Lisää myöhemmin toinen, jos haluat seurata useampaa.",
+        "data": {
+          "operator": "Rautatie"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: API-avain",
+        "description": "{operator} pyytää jokaiselta käyttäjältä oman avaimen. Pyydä se osoitteesta {key_url}. Käyttöehdot: {terms_url}. Avain tallennetaan Home Assistantiin tämän integraation kanssa, eikä sitä koskaan kirjoiteta lokiin.",
+        "data": {
+          "api_key": "API-avain"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: uusi API-avain",
+        "description": "{operator} hylkäsi tallennetun avaimen. Anna uusi; avaimia myönnetään osoitteessa {key_url}.",
+        "data": {
+          "api_key": "API-avain"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Rautatie hylkäsi tämän avaimen.",
+      "cannot_connect": "Rautatien syötteeseen ei saatu yhteyttä tai sitä ei voitu lukea. Yritä uudelleen minuutin kuluttua."
+    },
+    "abort": {
+      "already_configured": "Tämä rautatie on jo määritetty.",
+      "all_configured": "Kaikki tuetut rautatiet on jo määritetty.",
+      "cannot_connect": "Rautatien syötteeseen ei saatu yhteyttä tai sitä ei voitu lukea. Yritä uudelleen minuutin kuluttua.",
+      "reauth_successful": "Uusi avain toimii."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Päivitysväli",
+          "show_parked_equipment": "Näytä seisova kalusto"
+        },
+        "data_description": {
+          "scan_interval": "Kuinka usein rautatien syöte luetaan. Useimmat syötteet päivittyvät noin 30 sekunnin välein.",
+          "show_parked_equipment": "Pois: kalusto, joka ei ole liikenteessä, näkyy vain liikkuessaan ja poistuu kartalta seistyään 10 minuuttia. Päällä: syötteen kaikki kalustoyksiköt näytetään, myös seisovat junat."
+        }
+      }
+    }
+  },
+  "issues": {
+    "map_card_yaml_resource": {
+      "title": "Lisää Live Trackin karttakortti resursseihin",
+      "description": "Kojelautojesi resurssit määritetään YAML:ssa, joten karttakorttia ei voi rekisteröidä automaattisesti. Lisää tämä kohtaan lovelace: resources: tiedostossa configuration.yaml ja käynnistä sitten uudelleen:\n\n- url: {url}\n  type: module"
+    },
+    "map_card_duplicate_resources": {
+      "title": "Live Trackin karttakortti on rekisteröity useammin kuin kerran",
+      "description": "Myös nämä kojelaudan resurssit lataavat karttakortin: {urls}. Vain yhtä käytetään, eivätkä muut tee mitään. Poista ne kohdassa Asetukset > Kojelaudat > Resurssit (Settings > Dashboards > Resources)."
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "Yhdysvallat — Illinois",
+        "us-in": "Yhdysvallat — Indiana",
+        "us-wi": "Yhdysvallat — Wisconsin",
+        "au-nsw": "Australia — Uusi Etelä-Wales",
+        "au-qld": "Australia — Queensland",
+        "au-vic": "Australia — Victoria",
+        "fi": "Suomi",
+        "ie": "Irlanti",
+        "es-an": "Espanja — Andalusia",
+        "es-ar": "Espanja — Aragonia",
+        "es-as": "Espanja — Asturia",
+        "es-cb": "Espanja — Kantabria",
+        "es-cl": "Espanja — Kastilia ja León",
+        "es-ct": "Espanja — Katalonia",
+        "es-ga": "Espanja — Galicia",
+        "es-mc": "Espanja — Murcia",
+        "es-md": "Espanja — Madrid",
+        "es-pv": "Espanja — Baskimaa",
+        "es-vc": "Espanja — Valencia",
+        "nl": "Alankomaat",
+        "no": "Norja",
+        "se": "Ruotsi"
+      }
+    }
+  }
+}

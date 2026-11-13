@@ -65,5 +65,33 @@
       "title": "The Live Track map card is registered more than once",
       "description": "These dashboard resources also load the map card: {urls}. Only one is used and the others do nothing. Remove them in Settings > Dashboards > Resources."
     }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "United States — Illinois",
+        "us-in": "United States — Indiana",
+        "us-wi": "United States — Wisconsin",
+        "au-nsw": "Australia — New South Wales",
+        "au-qld": "Australia — Queensland",
+        "au-vic": "Australia — Victoria",
+        "fi": "Finland",
+        "ie": "Ireland",
+        "es-an": "Spain — Andalusia",
+        "es-ar": "Spain — Aragon",
+        "es-as": "Spain — Asturias",
+        "es-cb": "Spain — Cantabria",
+        "es-cl": "Spain — Castile and León",
+        "es-ct": "Spain — Catalonia",
+        "es-ga": "Spain — Galicia",
+        "es-mc": "Spain — Murcia",
+        "es-md": "Spain — Madrid",
+        "es-pv": "Spain — Basque Country",
+        "es-vc": "Spain — Valencian Community",
+        "nl": "Netherlands",
+        "no": "Norway",
+        "se": "Sweden"
+      }
+    }
   }
 }

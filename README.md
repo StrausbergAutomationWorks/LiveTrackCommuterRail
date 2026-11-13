@@ -46,8 +46,9 @@ the railroads it reads. It is original work, MIT-licensed.
 
 ## Status
 
-**0.1.0**, the first release. It runs live on its development instance with
-every railroad below.
+**0.1.1.** It runs live on its development instance with every railroad
+below. New in 0.1.1: the setup dialog in Finnish, Swedish, Norwegian Bokmål,
+Spanish, Dutch and Irish, and "What appears" for every railroad.
 
 ## Requirements
 
@@ -119,6 +120,10 @@ a new one.
 
 Options: the poll interval (default 30 s), and whether to show parked
 equipment.
+
+The dialog, and the names of the regions in it, are in English, Finnish,
+Swedish, Norwegian Bokmål, Spanish, Dutch and Irish; Home Assistant shows the
+one that matches your language.
 
 ## What appears
 
@@ -234,6 +239,74 @@ equipment.
   positions, and a position more than 1 km from it is refused.
   `rail/sweden_ends.json` holds the end cities' populations (Statistics
   Sweden, CC0).
+* **Spain** (Renfe Cercanías and Rodalies; each of the 15 networks is its own
+  entry), from Renfe's one open GTFS-Realtime feed through one client shared
+  with the other Live Track integrations that read it. A train is a trip. The
+  label is its line (C5, R2N) in the route's own colour from Renfe's timetable,
+  white with a dark outline as Renfe draws it; a white line gets a thin black
+  ring. The train number and the line's name are in the hover box. Renfe places
+  its trains on the trip's route rather than by GPS, so they stand and then
+  jump: no speed is derived, the arrow follows the trip's route where the train
+  is, and a train is called stalled only after 6 minutes in one place. Each
+  train moves only forward along its own line: a position more than 150 m off
+  it, more than 100 m back along it or faster than 200 km/h is refused and the
+  last good one held for up to 10 minutes (six refused positions that agree
+  are taken). A position more than 1 km from every route of the network is
+  refused. Renfe publishes no on-time rule, so no lateness thresholds are sent
+  and the card's defaults apply.
+* **Ireland** (Irish Rail's Commuter trains around Dublin and Cork, one entry),
+  from Irish Rail's live service through one client shared with Live Track
+  Intercity Rail, with the National Transport Authority's timetable for the
+  routes and stations. Irish Rail reports a train only as it passes signalling
+  points a few minutes apart, so each train is drawn from its timetable and its
+  latest reported delay, moved along its trip's route; Cork's trains, which
+  Irish Rail does not track, come from the timetable alone. The label is the
+  train number without its letter (P508 shows 508); the hover box reads
+  "Irish Rail P508 · Maynooth–Dublin Connolly". The disc is the line's colour
+  from Transport for Ireland's network map: Northern blue and Cork purple-grey
+  with a white ring and number, Western yellow and South Western orange with a
+  pale or dark-orange band inside a black ring and a black number. The colours
+  swap toward the hub, Dublin or Cork (Kent); a train crossing the city flips
+  to leaving once it passes Connolly, Heuston or Kent. Late from 5 minutes
+  (Irish Rail's own rule), very late from 10.
+* **The Netherlands** (NS Sprinter, one entry), from NS's vehicle feed with your
+  own key, through one client shared with Live Track Intercity Rail, which
+  draws NS's Intercity and regional trains. The label is the train number;
+  the hover box reads "Sprinter 6632 · Dordrecht–Arnhem Centraal". NS yellow
+  with an NS blue ring. This is the one feed here that reports a train's own
+  speed and heading, and both are passed on (`speed_kmh`, `course_deg`). It
+  gives no time for a position, so `observed_at` is the poll that first saw it
+  (`observed_at_source: first_seen`). The next stop and the delay come from
+  OVapi's timetable (CC0); the track is NS's SpoorKaart, downloaded daily, and
+  a train slides along it between positions; a position more than 1 km from it
+  is refused. Late from 3 minutes (NS's own definition), very late from 10.
+* **New South Wales** (NSW TrainLink Intercity: the Blue Mountains, Central
+  Coast and Newcastle, Hunter, South Coast and Southern Highlands lines, one
+  entry), from Transport for NSW's NSW TrainLink and Sydney Trains feeds with
+  your own key, through one client shared with Live Track Intercity Rail. A run
+  in both feeds is one marker. The label is the line code (BMT, CCN, HUN, SCO,
+  SHL); the run and its ends are in the hover box ("Train KN56 ·
+  Bomaderry–Kiama"). The line's timetable colour, filled with a white ring
+  leaving Sydney Central and swapped going to it. Empty trains are
+  `NIS <run>` in grey. The next stop is a station, never a platform. The arrow
+  follows the trip's route. A position more than 10 minutes old is not drawn,
+  and a train is removed when its run is over (its last stop plus its latest
+  delay). Late from 6 minutes (Transport for NSW's Intercity measure), very
+  late from 12.
+* **Victoria** (V/Line commuter: the Geelong, Ballarat, Bendigo, Seymour and
+  Traralgon lines, one entry), from Transport Victoria's V/Line feed with your
+  own key, through one client shared with Live Track Intercity Rail, which
+  draws V/Line's long-distance trains. The label is the line code (GEL, BAT,
+  BGO, SER, TRN); the train number and line are in the hover box ("Train 8037 ·
+  Bendigo - Melbourne via Gisborne"). Every line is V/Line purple: leaving
+  Melbourne a purple disc with a white ring and label, toward Southern Cross a
+  white disc with a purple ring and label. V/Line's positions follow the
+  timetable more than the train: a trip leaves the feed about a minute after
+  its scheduled arrival wherever the train is, and positions freeze around
+  midnight. So a train keeps its last position for up to 10 minutes and then
+  leaves the map, and a late train can disappear before its terminal. A jump
+  faster than 70 m/s is refused. Late from 6 minutes (V/Line's rule for
+  commuter services), very late from 12. The arrow follows the trip's route.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 

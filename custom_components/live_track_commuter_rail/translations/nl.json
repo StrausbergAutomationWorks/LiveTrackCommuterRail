@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "Waar is de spoorweg die je wilt volgen? Alleen regio's met minstens één ondersteunde spoorweg worden getoond.",
+        "data": {
+          "region": "Regio"
+        }
+      },
+      "operator": {
+        "title": "Kies de spoorweg",
+        "description": "Elke spoorweg wordt apart toegevoegd. Voeg later een andere toe om er meer te volgen.",
+        "data": {
+          "operator": "Spoorweg"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: API-sleutel",
+        "description": "{operator} vraagt elke gebruiker om een eigen sleutel. Vraag er een aan op {key_url}. De voorwaarden staan op {terms_url}. De sleutel wordt met deze integratie in Home Assistant opgeslagen en nooit naar het logboek geschreven.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: nieuwe API-sleutel",
+        "description": "{operator} heeft de opgeslagen sleutel geweigerd. Vul een nieuwe in; sleutels worden uitgegeven op {key_url}.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "De spoorweg heeft deze sleutel geweigerd.",
+      "cannot_connect": "De databron van de spoorweg kon niet worden bereikt of gelezen. Probeer het over een minuut opnieuw."
+    },
+    "abort": {
+      "already_configured": "Deze spoorweg is al ingesteld.",
+      "all_configured": "Alle ondersteunde spoorwegen zijn al ingesteld.",
+      "cannot_connect": "De databron van de spoorweg kon niet worden bereikt of gelezen. Probeer het over een minuut opnieuw.",
+      "reauth_successful": "De nieuwe sleutel werkt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Ophaalinterval",
+          "show_parked_equipment": "Geparkeerd materieel tonen"
+        },
+        "data_description": {
+          "scan_interval": "Hoe vaak de databron van de spoorweg wordt gelezen. De meeste bronnen worden ongeveer elke 30 seconden bijgewerkt.",
+          "show_parked_equipment": "Uit: materieel dat niet in dienst is, verschijnt alleen zolang het rijdt en verdwijnt van de kaart na 10 minuten stilstand. Aan: elk voertuig in de bron wordt getoond, ook geparkeerde treinstellen."
+        }
+      }
+    }
+  },
+  "issues": {
+    "map_card_yaml_resource": {
+      "title": "Voeg de kaartweergave van Live Track toe aan je bronnen",
+      "description": "De bronnen van je dashboards worden in YAML ingesteld, dus de kaartweergave kan niet automatisch worden geregistreerd. Voeg dit toe onder lovelace: resources: in configuration.yaml en herstart:\n\n- url: {url}\n  type: module"
+    },
+    "map_card_duplicate_resources": {
+      "title": "De kaartweergave van Live Track is meer dan eens geregistreerd",
+      "description": "Deze dashboardbronnen laden de kaartweergave ook: {urls}. Er wordt er maar één gebruikt; de andere doen niets. Verwijder ze via Instellingen > Dashboards > Bronnen (Settings > Dashboards > Resources)."
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "Verenigde Staten — Illinois",
+        "us-in": "Verenigde Staten — Indiana",
+        "us-wi": "Verenigde Staten — Wisconsin",
+        "au-nsw": "Australië — Nieuw-Zuid-Wales",
+        "au-qld": "Australië — Queensland",
+        "au-vic": "Australië — Victoria",
+        "fi": "Finland",
+        "ie": "Ierland",
+        "es-an": "Spanje — Andalusië",
+        "es-ar": "Spanje — Aragón",
+        "es-as": "Spanje — Asturië",
+        "es-cb": "Spanje — Cantabrië",
+        "es-cl": "Spanje — Castilië en León",
+        "es-ct": "Spanje — Catalonië",
+        "es-ga": "Spanje — Galicië",
+        "es-mc": "Spanje — Murcia",
+        "es-md": "Spanje — Madrid",
+        "es-pv": "Spanje — Baskenland",
+        "es-vc": "Spanje — Valencia",
+        "nl": "Nederland",
+        "no": "Noorwegen",
+        "se": "Zweden"
+      }
+    }
+  }
+}

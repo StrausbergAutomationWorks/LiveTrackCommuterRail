@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Live Track Commuter Rail",
+        "description": "Var finns pendeltågsbanan du vill följa? Bara regioner med minst en bana som stöds visas.",
+        "data": {
+          "region": "Region"
+        }
+      },
+      "operator": {
+        "title": "Välj bana",
+        "description": "Varje bana läggs till för sig. Lägg till en till senare för att följa fler.",
+        "data": {
+          "operator": "Bana"
+        }
+      },
+      "credentials": {
+        "title": "{operator}: API-nyckel",
+        "description": "{operator} kräver en egen nyckel för varje användare. Begär en på {key_url}. Villkoren finns på {terms_url}. Nyckeln sparas i Home Assistant med den här integrationen och skrivs aldrig till loggen.",
+        "data": {
+          "api_key": "API-nyckel"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{operator}: ny API-nyckel",
+        "description": "{operator} avvisade den sparade nyckeln. Ange en ny; nycklar utfärdas på {key_url}.",
+        "data": {
+          "api_key": "API-nyckel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Banan avvisade den här nyckeln.",
+      "cannot_connect": "Banans datakälla gick inte att nå eller läsa. Försök igen om en minut."
+    },
+    "abort": {
+      "already_configured": "Den här banan är redan konfigurerad.",
+      "all_configured": "Alla banor som stöds är redan konfigurerade.",
+      "cannot_connect": "Banans datakälla gick inte att nå eller läsa. Försök igen om en minut.",
+      "reauth_successful": "Den nya nyckeln fungerar."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Live Track Commuter Rail",
+        "data": {
+          "scan_interval": "Uppdateringsintervall",
+          "show_parked_equipment": "Visa uppställda fordon"
+        },
+        "data_description": {
+          "scan_interval": "Hur ofta banans datakälla läses. De flesta källor uppdateras ungefär var 30:e sekund.",
+          "show_parked_equipment": "Av: fordon som inte är i trafik visas bara medan de rör sig och försvinner från kartan efter 10 minuter stillastående. På: alla fordon i källan visas, även uppställda tågsätt."
+        }
+      }
+    }
+  },
+  "issues": {
+    "map_card_yaml_resource": {
+      "title": "Lägg till Live Tracks kartkort bland resurserna",
+      "description": "Dina instrumentpanelers resurser anges i YAML, så kartkortet kan inte registreras automatiskt. Lägg till detta under lovelace: resources: i configuration.yaml och starta sedan om:\n\n- url: {url}\n  type: module"
+    },
+    "map_card_duplicate_resources": {
+      "title": "Live Tracks kartkort är registrerat mer än en gång",
+      "description": "De här resurserna läser också in kartkortet: {urls}. Bara ett används och de andra gör ingenting. Ta bort dem under Inställningar > Instrumentpaneler > Resurser (Settings > Dashboards > Resources)."
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "us-il": "USA — Illinois",
+        "us-in": "USA — Indiana",
+        "us-wi": "USA — Wisconsin",
+        "au-nsw": "Australien — New South Wales",
+        "au-qld": "Australien — Queensland",
+        "au-vic": "Australien — Victoria",
+        "fi": "Finland",
+        "ie": "Irland",
+        "es-an": "Spanien — Andalusien",
+        "es-ar": "Spanien — Aragonien",
+        "es-as": "Spanien — Asturien",
+        "es-cb": "Spanien — Kantabrien",
+        "es-cl": "Spanien — Kastilien och León",
+        "es-ct": "Spanien — Katalonien",
+        "es-ga": "Spanien — Galicien",
+        "es-mc": "Spanien — Murcia",
+        "es-md": "Spanien — Madrid",
+        "es-pv": "Spanien — Baskien",
+        "es-vc": "Spanien — Valencia",
+        "nl": "Nederländerna",
+        "no": "Norge",
+        "se": "Sverige"
+      }
+    }
+  }
+}

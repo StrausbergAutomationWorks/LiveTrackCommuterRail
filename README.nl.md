@@ -19,6 +19,13 @@ integratie zelf dagelijks ophaalt; tussen twee posities schuift een trein over
 het spoor van SpoorKaart. Een positie meer dan 1 km van het spoor wordt
 geweigerd.
 
+* Het label is het treinnummer; bij aanwijzen staat er bijvoorbeeld
+  "Sprinter 6632 · Dordrecht–Arnhem Centraal". NS-geel met een NS-blauwe rand.
+* NS meldt zelf de snelheid en de rijrichting van de trein; beide worden
+  doorgegeven. De positie heeft geen tijd, dus `observed_at` is de eerste
+  ophaalronde die haar zag.
+* Te laat vanaf 3 minuten (de definitie van NS), flink te laat vanaf 10.
+
 ## Alle spoorwegen
 
 Metra en South Shore Line (Chicago), Renfe Cercanías en Rodalies (Spanje),
@@ -73,8 +80,9 @@ via een link:
 ## Instellen
 
 **Settings > Devices & services > Add integration > Live Track Commuter Rail**.
-Kies de regio, dan de spoorweg, en vul je sleutel in. Het venster is voorlopig
-Engelstalig, en de menunamen hierboven zijn die van de Engelse interface.
+Kies de regio, dan de spoorweg, en vul je sleutel in. Het venster en de namen van de regio's verschijnen in het
+Nederlands als Home Assistant op Nederlands staat. De menunamen hierboven zijn
+die van de Engelse interface.
 
 ## Data en licentie
 
