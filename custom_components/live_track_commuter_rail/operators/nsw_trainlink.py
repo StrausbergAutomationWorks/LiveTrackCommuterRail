@@ -17,6 +17,9 @@ runs: 43-47 at once) is in Sydney Trains' feed (v2 vehiclepos/sydneytrains), whi
 IDENTITY: <run>-<day of the run date>, the run being the trip id's first field (KN56.131126.16.N.2.1316 is KN56), which
 Sydney Trains' trip ids share (SN47.1421.149.64.N.2.92126706), so a run reads the same from either feed.
 
+NEXT STOP: saw_livetrack's rule on the trip updates with each trip's origin call taken out (the origin is never a next
+stop, Intercity Rail's NSW rule and Norway's here), named by station, never platform (stops_from_updates, station_name).
+
 LABEL the line code (BMT, HUN, SCO, SHL: Transport for NSW's own "short abbreviated codes"), the run in the hover. THE
 LOOK (06_MAP_CONTRACT.md D4a-direction, hub Sydney Central): the line's timetable colour filled, white ring and label,
 leaving Sydney; swapped going to it. Direction from the timetable's direction_id (0 away from Central on 57,005 of
@@ -41,6 +44,7 @@ import zipfile
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
+from saw_livetrack.gtfs import next_stops, stop_delays
 from saw_livetrack.tfnsw import ATTRIBUTION, COMMUTER, POSITIONS_URL, STATIC_URL, TERMS_URL, TIME_ZONE
 
 from .base import SOURCE_TFNSW, Obs, Operator, position_of, vehicle_time
@@ -61,7 +65,7 @@ RUN_AFTER_S = 6 * 3600.0
 # Used when a route has no colour in the timetable (every route had one on 2026-11-12): NSW TrainLink orange.
 DEFAULT_COLOUR = "#F6891F"
 # extras["trip"] rows: [route_id, shape line, reversed, direction_id or None, first time s, last time s, first name,
-# last name]
+# last name, first stop_sequence, first stop_id]
 _ZONE = ZoneInfo(TIME_ZONE)
 _RUN = re.compile(r"^[A-Za-z0-9]{2,8}$")
 # Tests patch this.
@@ -152,12 +156,13 @@ def _rows(z: zipfile.ZipFile, name: str):
             yield {(k or "").strip(): (v or "").strip() for k, v in r.items() if k}
 
 
-_PLATFORM = re.compile(r"\s+Platform\s+\S+$")
+_PLATFORM = re.compile(r",?\s+Platform\s+\S+$")
 
 
 def station_name(stop: str) -> str:
-    """'Berry Station Platform 1' -> 'Berry Station': the timetable names the platform a trip calls at (MEASURED in the
-    replay, bin\\nsw_ltcr_replay.txt); the hover names the station, as Intercity Rail's NSW TrainLink does."""
+    """'Berry Station Platform 1' and 'Mittagong Station, Platform 1' -> the station: the timetable names the platform
+    a trip calls at, 124 of its names with a comma (MEASURED 2026-11-12, the replay and the box); the hover names the
+    station, as Intercity Rail's NSW TrainLink does."""
     return _PLATFORM.sub("", stop)
 
 
@@ -206,7 +211,7 @@ def extras(z: zipfile.ZipFile, distilled: dict[str, Any], shape_index: dict[str,
         ix = shape_index.get(r.get("shape_id", ""), [-1, 0])
         d = r.get("direction_id", "")
         trips[tid] = [r.get("route_id", ""), ix[0], ix[1], d if d in ("0", "1") else None, e[1], e[4],
-                      short_name(name(e[2])), short_name(name(e[5]))]
+                      short_name(name(e[2])), short_name(name(e[5])), e[0], e[2]]
     return {"route": routes, "trip": trips}
 
 
@@ -268,6 +273,35 @@ def decorate(rec: dict[str, Any], obs: Obs, static: dict[str, Any] | None) -> No
     rec["icon_rotation_deg"] = crs
 
 
+def is_origin(update: Any, info: list | None) -> bool:
+    """A stop time update for the trip's first call: by stop_sequence where the update carries one (TfNSW's are the
+    timetable's, MEASURED on capture round 1), else by stop_id."""
+    if not info or len(info) < 10:
+        return False
+    if update.HasField("stop_sequence"):
+        return update.stop_sequence == info[8]
+    return bool(update.stop_id) and update.stop_id == info[9]
+
+
+def stops_from_updates(tu, static: dict[str, Any] | None, now: float) -> tuple[dict, dict]:
+    """saw_livetrack's next stops and delays, from the trip updates WITHOUT each trip's origin call: the origin is
+    never a next stop (Intercity Rail's rule for NSW TrainLink, and Norway's here). MEASURED live 2026-11-12 20:54: V945
+    waiting at Newcastle Interchange read "next Newcastle Interchange"."""
+    trips = ((static or {}).get("extras") or {}).get("trip") or {}
+    cut = type(tu)()
+    cut.CopyFrom(tu)
+    for ent in cut.entity:
+        if not ent.HasField("trip_update"):
+            continue
+        tu_ = ent.trip_update
+        info = trips.get(tu_.trip.trip_id.strip())
+        keep = [u for u in tu_.stop_time_update if not is_origin(u, info)]
+        if len(keep) != len(tu_.stop_time_update):
+            del tu_.stop_time_update[:]
+            tu_.stop_time_update.extend(keep)
+    return next_stops(cut, static, now), stop_delays(cut, static, now)
+
+
 def drop_finished(observations: list[Obs], static: dict[str, Any] | None, now: float) -> list[Obs]:
     """Observations without the trains whose run's last stop is FINISHED_AGE_S behind them and whose fix is that old
     too. Without the timetable, or a trip it does not know, nothing is dropped."""
@@ -321,6 +355,7 @@ NSW_TRAINLINK = Operator(
     static_extras=extras,
     decorate=decorate,
     obs_filter=drop_finished,
+    stops_from_updates=stops_from_updates,
     off_rail_m=OFF_RAIL_M,
     narn=False,
     # ! A marker only: the shared client sends the key in the header `Authorization: apikey <key>`, never as a query

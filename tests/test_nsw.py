@@ -141,7 +141,8 @@ class Extras(unittest.TestCase):
     def test_trip_row(self):
         # Ends by sequence, not by file order; parent station names, " Station" dropped.
         self.assertEqual(self.ex["trip"]["KN56.x"],
-                         ["4T.T.SCO", 4, 1, "1", 13 * 3600 + 16 * 60, 13 * 3600 + 52 * 60, "Bomaderry", "Kiama"])
+                         ["4T.T.SCO", 4, 1, "1", 13 * 3600 + 16 * 60, 13 * 3600 + 52 * 60, "Bomaderry", "Kiama",
+                          1, "BMD2"])
 
     def test_unknown_shape_and_direction_and_no_departure(self):
         row = self.ex["trip"]["HM1.x"]
@@ -229,6 +230,11 @@ class Decorate(unittest.TestCase):
         self.assertEqual(nsw.station_name("Platform 2 Road Platform 2"), "Platform 2 Road")
         # Only the trailing platform goes.
         self.assertEqual(nsw.station_name("Old Platform 9 Halt Platform 1"), "Old Platform 9 Halt")
+        # 124 of TfNSW's names carry a comma (seen live: "Mittagong Station,").
+        r = self.rec(next_stop="Mittagong Station, Platform 1")
+        nsw.decorate(r, _obs(), self.static)
+        self.assertEqual(r["next_stop"], "Mittagong Station")
+        self.assertEqual(nsw.station_name("Mittagong Station, Regent St"), "Mittagong Station, Regent St")
         r = self.rec()
         nsw.decorate(r, _obs(), self.static)
         self.assertNotIn("next_stop", r)
@@ -267,6 +273,82 @@ class Decorate(unittest.TestCase):
         nsw.decorate(r, _obs(trip="OTHER.x", line=None, train=None), None)
         self.assertNotIn("marker_label", r)
         self.assertNotIn("line_name", r)
+
+
+def _updates():
+    tu = gtfs_realtime_pb2.FeedMessage()
+    tu.header.gtfs_realtime_version = "2.0"
+    e = tu.entity.add()
+    e.id = "1"
+    e.trip_update.trip.trip_id = "V945.x"
+    for seq, sid in ((1, "NCI3"), (2, "WRH1"), (3, "BFD2")):
+        u = e.trip_update.stop_time_update.add()
+        u.stop_sequence, u.stop_id = seq, sid
+    e2 = tu.entity.add()
+    e2.id = "2"
+    e2.trip_update.trip.trip_id = "BYID.x"
+    for sid in ("A1", "B1"):
+        e2.trip_update.stop_time_update.add().stop_id = sid
+    e3 = tu.entity.add()
+    e3.id = "3"
+    e3.trip_update.trip.trip_id = "UNKNOWN.x"
+    e3.trip_update.stop_time_update.add().stop_sequence = 1
+    tu.entity.add().id = "4"          # no trip update at all
+    return tu
+
+
+class NeverTheOrigin(unittest.TestCase):
+    static = {"extras": {"trip": {"V945.x": ["r", 0, 0, "0", 0, 1, "Newcastle Interchange", "Dungog", 1, "NCI3"],
+                                  "BYID.x": ["r", 0, 0, "0", 0, 1, "a", "b", 7, "A1"]}}}
+
+    def setUp(self):
+        self._n, self._d = nsw.next_stops, nsw.stop_delays
+        self.seen = []
+
+        def fake_next(feed, static, now):
+            self.seen.append(feed)
+            return {"n": 1}
+
+        nsw.next_stops = fake_next
+        nsw.stop_delays = lambda feed, static, now: {"d": feed is self.seen[-1]}
+
+    def tearDown(self):
+        nsw.next_stops, nsw.stop_delays = self._n, self._d
+
+    def calls(self, feed, i):
+        return [(u.stop_sequence if u.HasField("stop_sequence") else None, u.stop_id)
+                for u in feed.entity[i].trip_update.stop_time_update]
+
+    def test_origin_taken_out_by_sequence_and_by_stop_id(self):
+        tu = _updates()
+        got = nsw.stops_from_updates(tu, self.static, NOW)
+        self.assertEqual(got, ({"n": 1}, {"d": True}))
+        cut = self.seen[0]
+        self.assertEqual(self.calls(cut, 0), [(2, "WRH1"), (3, "BFD2")])
+        self.assertEqual(self.calls(cut, 1), [(None, "B1")])
+        # A trip the timetable does not know keeps every call.
+        self.assertEqual(self.calls(cut, 2), [(1, "")])
+        # The caller's feed is not changed.
+        self.assertEqual(len(tu.entity[0].trip_update.stop_time_update), 3)
+
+    def test_a_sequence_decides_over_a_matching_stop_id(self):
+        u = gtfs_realtime_pb2.TripUpdate.StopTimeUpdate()
+        u.stop_sequence, u.stop_id = 2, "NCI3"
+        self.assertFalse(nsw.is_origin(u, self.static["extras"]["trip"]["V945.x"]))
+        u = gtfs_realtime_pb2.TripUpdate.StopTimeUpdate()
+        self.assertFalse(nsw.is_origin(u, ["r", 0, 0, "0", 0, 1, "a", "b", 7, ""]))
+        self.assertFalse(nsw.is_origin(u, ["short"]))
+        self.assertFalse(nsw.is_origin(u, None))
+        # A row from before the origin was kept (8 fields) never decides, even with a sequence.
+        u.stop_sequence = 1
+        self.assertFalse(nsw.is_origin(u, ["r", 0, 0, "0", 0, 1, "a", "b"]))
+
+    def test_no_timetable(self):
+        nsw.stops_from_updates(_updates(), None, NOW)
+        self.assertEqual(self.calls(self.seen[0], 0), [(1, "NCI3"), (2, "WRH1"), (3, "BFD2")])
+
+    def test_registered(self):
+        self.assertIs(ops.OPERATORS["nsw_trainlink"].stops_from_updates, nsw.stops_from_updates)
 
 
 def _at(fixed, trip="KN56.x"):

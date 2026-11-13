@@ -365,7 +365,7 @@ class NextStopTests(Base):
         for op_id in ("vy", "go_ahead_norge", "flytoget"):
             self.assertIs(ops.OPERATORS[op_id].stops_from_updates, nw.stops_from_updates)
         for op in ops.OPERATORS.values():
-            if op.source != base.SOURCE_ENTUR:
+            if op.source not in (base.SOURCE_ENTUR, base.SOURCE_TFNSW):   # NSW's: tests/test_nsw.py
                 self.assertIsNone(op.stops_from_updates, op.id)
 
 
