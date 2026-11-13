@@ -510,8 +510,9 @@ class OperatorTests(unittest.TestCase):
 
     def test_other_sources_unchanged(self):
         for op in ops.OPERATORS.values():
-            if op.source in (base.SOURCE_ENTUR, base.SOURCE_TFNSW, base.SOURCE_TRANSPORT_VIC):
-                continue   # Norway's, NSW's and V/Line's cut by window too: tests/test_norway.py, test_nsw.py, test_vline.py
+            if op.source in (base.SOURCE_ENTUR, base.SOURCE_TFNSW, base.SOURCE_TRANSPORT_VIC, base.SOURCE_ADELAIDE_METRO):
+                continue   # Norway's, NSW's and V/Line's cut by window too: tests/test_norway.py, test_nsw.py, test_vline.py;
+                #            Adelaide's timetable takes 180 s: test_adelaide_metro.py
             if op.source != base.SOURCE_RENFE:
                 self.assertIsNone(op.renfe_consumer, op.id)
                 self.assertIsNone(op.filter_trip_updates, op.id)

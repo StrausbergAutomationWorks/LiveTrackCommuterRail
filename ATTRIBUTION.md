@@ -49,6 +49,10 @@ own `.storage`, never shipped here.
 **NSW TrainLink Intercity** (New South Wales). Data: Transport for NSW (opendata.transport.nsw.gov.au),
 CC BY 4.0, https://opendata.transport.nsw.gov.au/datalicence.
 
+**Adelaide Metro** (South Australia). Data: Adelaide Metro – Department for Infrastructure and Transport,
+South Australia, CC BY 4.0, https://www.adelaidemetro.com.au/developer-info (the attribution the Government of
+South Australia requests). The piping shrike emblem and Adelaide Metro's trademarks are not used.
+
 **V/Line commuter** (Victoria). Data: Transport Victoria (opendata.transport.vic.gov.au), CC BY 4.0,
 https://discover.data.vic.gov.au/dataset/gtfs-realtime.
 

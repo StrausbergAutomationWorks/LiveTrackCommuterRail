@@ -37,6 +37,7 @@ from .const import (
     USER_AGENT,
 )
 from saw_livetrack.digitraffic_rail import DigitrafficError
+from saw_livetrack.adelaide_metro import AdelaideMetroError
 from saw_livetrack.renfe import RenfeError
 from saw_livetrack.entur import EnturError
 from saw_livetrack.gtfs import Fleet, decode
@@ -55,6 +56,8 @@ from .shared_digitraffic_rail import get_shared_rail_client, release_shared_rail
 from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
 from .shared_ns import get_shared_ns_client, release_shared_ns_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
+from .operators.base import SOURCE_ADELAIDE_METRO
+from .shared_adelaide_metro import get_shared_adelaide_metro_client, release_shared_adelaide_metro_client
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
 from .shared_tfnsw import get_shared_tfnsw_client, release_shared_tfnsw_client
@@ -132,6 +135,12 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._renfe = None
         if op.source == SOURCE_RENFE:
             self._renfe = get_shared_renfe_client(hass, op.renfe_consumer)
+        # Adelaide Metro (SSOT 19): the ONE shared client per Home Assistant, registered as this operator's consumer
+        # (the trains); it hands over its copy of the timetable and that copy's version.
+        self._adl = None
+        self._adl_version: Any = None
+        if op.source == SOURCE_ADELAIDE_METRO:
+            self._adl = get_shared_adelaide_metro_client(hass, op.adelaide_metro_consumer)
         # Entur (Norway, SSOT 12): the ONE shared client per Home Assistant, this operator's (consumer, codespace)
         # claimed; its timetable is the client's copy on disk (Vy's is 66 MB), read only when it is distilled.
         self._entur = None
@@ -174,6 +183,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raw_source = self._vic_zip
         elif self._renfe is not None:
             raw_source = self._renfe.static_zip
+        elif self._adl is not None:
+            raw_source = self._adl.static_zip
         elif self._entur is not None:
             raw_source = self._entur_zip
         elif self._irish is not None:
@@ -234,6 +245,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._renfe is not None:
             self._renfe = None
             release_shared_renfe_client(self.hass, self.operator.renfe_consumer)
+        if self._adl is not None:
+            self._adl = None
+            release_shared_adelaide_metro_client(self.hass, self.operator.adelaide_metro_consumer)
         if self._entur is not None:
             self._entur = None
             release_shared_entur_client(self.hass, self.operator.entur_consumer,
@@ -498,6 +512,26 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("%s feed failed: %s", op.id, type(err).__name__)
             return None
 
+    def _read_adl(self) -> tuple[Any, Any, Any]:
+        """(positions, trip updates, timetable version) for this operator's consumer from the shared Adelaide Metro
+        client. Blocking: the executor. Raises the client's errors."""
+        positions, updates = self._adl.for_consumer(self.operator.adelaide_metro_consumer)
+        return positions, updates, self._adl.static_version()
+
+    async def _fetch_adl(self):
+        """(positions, trip updates, version), or None on a failed fetch. Keyless: only the exception's TYPE is
+        logged, as for every feed here."""
+        try:
+            return await self.hass.async_add_executor_job(self._read_adl)
+        except AdelaideMetroError as err:
+            _LOGGER.debug("%s feed failed: %s", self.operator.id, type(err).__name__)
+            return None
+
+    @property
+    def adelaide_metro_stats(self) -> dict[str, Any] | None:
+        """The shared Adelaide Metro client's counters, for diagnostics; None for other sources."""
+        return self._adl.stats() if self._adl is not None else None
+
     async def _fetch_digitraffic(self) -> list[dict[str, Any]] | None:
         """This operator's records from the shared client (blocking: the executor), or
         None on a failed fetch. The client's exceptions carry no secret (keyless), but
@@ -572,6 +606,17 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Both feeds at once, already cut to this integration's consumer.
             got = await self._fetch_renfe()
             feed, tu = got if got is not None else (None, None)
+        elif op.source == SOURCE_ADELAIDE_METRO:
+            # Both feeds at once, already cut to route_type 2. A new timetable version on the client is distilled again
+            # at once, not at the day's refresh.
+            got = await self._fetch_adl()
+            feed = None
+            if got is not None:
+                feed, tu, version = got
+                if version != self._adl_version:
+                    if self._adl_version is not None:
+                        self._static.request_refresh()
+                    self._adl_version = version
         elif op.source == SOURCE_TFNSW:
             # Both feeds, already cut to route_type 100 and cleaned (trip updates None when that file failed). A new
             # timetable on the client's disk is distilled again at once, not at the day's refresh.

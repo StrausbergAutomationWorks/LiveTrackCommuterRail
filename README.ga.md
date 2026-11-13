@@ -35,8 +35,7 @@ ann. Níl eochair ag teastáil.
 Metra agus South Shore Line (Chicago), Renfe Cercanías agus Rodalies (an
 Spáinn), VR lähijunat (an Fhionlainn), Vy, Go-Ahead Norge agus Flytoget (an
 Iorua), SL Pendeltåg, Västtågen agus Arlanda Express (an tSualainn), NS Sprinter
-(an Ísiltír), Irish Rail (Éire), Queensland Rail Citytrain, NSW TrainLink
-Intercity agus V/Line (an Astráil). Eochracha agus téarmaí: [an tábla sa README
+(an Ísiltír), Irish Rail (Éire), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line agus Adelaide Metro (an Astráil). Eochracha agus téarmaí: [an tábla sa README
 Béarla](README.md#supported-railroads).
 
 ## Cuid de Live Track

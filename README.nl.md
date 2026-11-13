@@ -31,8 +31,7 @@ geweigerd.
 Metra en South Shore Line (Chicago), Renfe Cercanías en Rodalies (Spanje),
 VR lähijunat (Finland), Vy, Go-Ahead Norge en Flytoget (Noorwegen), SL
 Pendeltåg, Västtågen en Arlanda Express (Zweden), NS Sprinter (Nederland), Irish
-Rail (Ierland), Queensland Rail Citytrain, NSW TrainLink Intercity en V/Line
-(Australië). Sleutels en voorwaarden: [de tabel in de Engelse
+Rail (Ierland), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line en Adelaide Metro (Australië). Sleutels en voorwaarden: [de tabel in de Engelse
 README](README.md#supported-railroads).
 
 ## Onderdeel van Live Track

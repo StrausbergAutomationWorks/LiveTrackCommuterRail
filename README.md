@@ -17,8 +17,9 @@ Sevilla, Bilbao and ten more Spanish networks), **VR and HSL commuter trains**
 (Helsinki, Finland), **Vy**, **Go-Ahead Norge** and **Flytoget** (Oslo, Bergen,
 Stavanger), **SL Pendeltåg**, **Västtågen** and **Arlanda Express** (Stockholm,
 Göteborg), **NS Sprinter** (the Netherlands), **Irish Rail** (Dublin, Cork),
-**Queensland Rail Citytrain** (Brisbane), **NSW TrainLink Intercity** (Sydney)
-and **V/Line** (Melbourne, Geelong, Ballarat, Bendigo).
+**Queensland Rail Citytrain** (Brisbane), **NSW TrainLink Intercity** (Sydney),
+**V/Line** (Melbourne, Geelong, Ballarat, Bendigo) and **Adelaide Metro**
+(Adelaide's trains).
 
 ## Part of Live Track
 
@@ -46,8 +47,8 @@ the railroads it reads. It is original work, MIT-licensed.
 
 ## Status
 
-**0.1.1.** It runs live on its development instance with every railroad
-below. New in 0.1.1: the setup dialog in Finnish, Swedish, Norwegian Bokmål,
+**0.1.2.** It runs live on its development instance with every railroad
+below. New in 0.1.2: Adelaide Metro's trains. New in 0.1.1: the setup dialog in Finnish, Swedish, Norwegian Bokmål,
 Spanish, Dutch and Irish, and "What appears" for every railroad.
 
 ## Requirements
@@ -105,6 +106,7 @@ To update by hand, replace the folder with the new release's and restart.
 | Irish Rail | Ireland: commuter services around Dublin and Cork | No | Irish Rail publishes no terms; timetable from the [National Transport Authority](https://www.transportforireland.ie/transitData/PT_Data.html), CC BY 4.0 |
 | NS Sprinter | the Netherlands | Yes, your own: [NS API portal](https://apiportal.ns.nl/) | the NS API portal; timetable and delays from [OVapi](https://gtfs.ovapi.nl), CC0 |
 | NSW TrainLink Intercity | Australia: New South Wales, the Intercity lines out of Sydney | Yes, your own: [Transport for NSW Open Data](https://opendata.transport.nsw.gov.au/) | [Transport for NSW data licence](https://opendata.transport.nsw.gov.au/datalicence); data CC BY 4.0 |
+| Adelaide Metro | Australia: South Australia, Adelaide's Belair, Gawler, Outer Harbor and Seaford lines | No | [Adelaide Metro developer information](https://www.adelaidemetro.com.au/developer-info); data CC BY 4.0, credit Adelaide Metro - Department for Infrastructure and Transport, South Australia |
 | V/Line commuter | Australia: Victoria, the Geelong, Ballarat, Bendigo, Seymour and Traralgon lines | Yes, your own: [Transport Victoria Open Data](https://opendata.transport.vic.gov.au/) | [Transport Victoria open data](https://discover.data.vic.gov.au/dataset/gtfs-realtime); data CC BY 4.0 |
 
 Read each railroad's terms before you use its data; they bind you, as the
@@ -307,6 +309,20 @@ one that matches your language.
   leaves the map, and a late train can disappear before its terminal. A jump
   faster than 70 m/s is refused. Late from 6 minutes (V/Line's rule for
   commuter services), very late from 12. The arrow follows the trip's route.
+* **South Australia** (Adelaide Metro's trains, one entry), from Adelaide Metro's
+  open GTFS-Realtime feed through one client shared with the other Live Track
+  integrations that read it (the same feed carries its trams, buses and
+  coaches). The positions are GPS with the train's own bearing. Adelaide
+  publishes no train number, so the label is the route code Adelaide Metro
+  uses on its website and timetables (BEL, FLNDRS, GAW, GAWC, GRNG, NOAR,
+  OSBORN, OUTHA, PTDOCK, SALIS, SEAFRD); the hover box reads "SEAFRD to
+  Seaford · railcar 4006". The colours are the rail network map's: Belair
+  green, Seaford & Flinders orange, Gawler red, Outer Harbor, Port Dock &
+  Grange blue. Leaving the City the disc is filled in the line's colour with
+  a white ring and label; toward Adelaide Railway Station it is white with the
+  ring and label in the line's colour. Late from 5 minutes (Adelaide Metro's
+  own rule, on time within 4:59), very late from 10. A position more than
+  1 km from every Adelaide rail route, or more than 5 minutes old, is refused.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 
@@ -377,4 +393,5 @@ tiempo real · Rodalies en temps real · trenes en el mapa · lähijunat kartall
 junat reaaliajassa · HSL · pendeltåg i realtid · tåg på kartan · tog i
 sanntid · Vy · Flytoget · NS treinen live · Sprinter · treinkaart · Irish Rail
 live trains · traenacha beo · Queensland Rail · Translink · NSW TrainLink ·
-Transport for NSW · V/Line · Transport Victoria
+Transport for NSW · V/Line · Transport Victoria · Adelaide Metro trains ·
+Adelaide train tracker

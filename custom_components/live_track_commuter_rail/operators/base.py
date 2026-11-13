@@ -54,6 +54,10 @@ SOURCE_TFNSW = "tfnsw"
 # (the commuter routes); the coordinator runs V/Line's rules on them (saw_livetrack.vline.VLineRuns) and parse(reports)
 # reads the runs. Its timetable is the client's copy of folder 1 on disk.
 SOURCE_TRANSPORT_VIC = "transport_vic"
+# Adelaide Metro (SSOT 19): the shared Adelaide Metro client (saw_livetrack.adelaide_metro, one poller per Home Assistant,
+# keyless) hands over the positions and trip updates already cut to route_type 2; parse(feed) reads the positions as for
+# GTFS_RT. Its timetable is the client's copy, read again when its version.txt changes.
+SOURCE_ADELAIDE_METRO = "adelaide_metro"
 
 
 @dataclass(frozen=True)
@@ -145,6 +149,9 @@ class Operator:
     # Transport Victoria: the consumer this operator registers with the shared client ("commuter";
     # saw_livetrack.transport_vic.CONSUMERS).
     transport_vic_consumer: str | None = None
+    # Adelaide Metro: the consumer this operator registers with the shared client ("commuter";
+    # saw_livetrack.adelaide_metro.CONSUMERS).
+    adelaide_metro_consumer: str | None = None
     # TfNSW: which of the shared client's timetables this operator's static is distilled from (saw_livetrack.tfnsw
     # NSWTRAINS or SYDNEYTRAINS). None: nswtrains.
     tfnsw_timetable: str | None = None
@@ -216,6 +223,7 @@ REGIONS: dict[str, str] = {
     "US-WI": "United States — Wisconsin",
     "AU-NSW": "Australia — New South Wales",
     "AU-QLD": "Australia — Queensland",
+    "AU-SA": "Australia — South Australia",
     "AU-VIC": "Australia — Victoria",
     "FI": "Finland",
     "IE": "Ireland",

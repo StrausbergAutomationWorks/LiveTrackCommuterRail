@@ -10,6 +10,7 @@ entity name. Never change one once released.
 
 from __future__ import annotations
 
+from .adelaide_metro import ADELAIDE_METRO
 from .base import REGIONS, Obs, Operator
 from .flytoget import FLYTOGET
 from .go_ahead_norge import GO_AHEAD_NORGE
@@ -28,7 +29,8 @@ from .vy import VY
 OPERATORS: dict[str, Operator] = {op.id: op for op in (METRA, NICTD, QR_CITYTRAIN,
                                                         VR_LAHIJUNAT, *RENFE_OPERATORS,
                                                         VY, GO_AHEAD_NORGE, FLYTOGET, *SWEDEN,
-                                                        IRISH_RAIL, NS, NSW_TRAINLINK, VLINE)}
+                                                        IRISH_RAIL, NS, NSW_TRAINLINK, VLINE,
+                                                        ADELAIDE_METRO)}
 
 
 def regions_in_use() -> dict[str, str]:

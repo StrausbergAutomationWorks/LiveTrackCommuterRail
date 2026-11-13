@@ -32,8 +32,7 @@ digitraffic.fi, CC BY 4.0. Avainta tai tiliä ei tarvita.
 Metra ja South Shore Line (Chicago), Renfe Cercanías ja Rodalies (Espanja),
 VR lähijunat (Suomi), Vy, Go-Ahead Norge ja Flytoget (Norja), SL Pendeltåg,
 Västtågen ja Arlanda Express (Ruotsi), NS Sprinter (Alankomaat), Irish Rail
-(Irlanti), Queensland Rail Citytrain, NSW TrainLink Intercity ja V/Line
-(Australia). Avaimet ja käyttöehdot: [taulukko englanninkielisessä
+(Irlanti), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line ja Adelaide Metro (Australia). Avaimet ja käyttöehdot: [taulukko englanninkielisessä
 README:ssä](README.md#supported-railroads).
 
 ## Osa Live Trackia

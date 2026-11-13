@@ -137,9 +137,10 @@ class Registry(unittest.TestCase):
         self.assertIn("Transport Victoria", op.attribution)
         self.assertIn("not sponsored", op.attribution)
 
-    def test_the_manifest_asks_for_0_2_38(self):
+    def test_the_manifest_asks_for_0_2_38_or_later(self):
+        # 0.2.39 since 2026-11-13 (Adelaide, SSOT 19); V/Line needs 0.2.38.
         m = json.loads((HERE / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("saw-livetrack[gtfs]>=0.2.38,<0.3", m["requirements"])
+        self.assertIn("saw-livetrack[gtfs]>=0.2.39,<0.3", m["requirements"])
 
 
 class Cut(unittest.TestCase):

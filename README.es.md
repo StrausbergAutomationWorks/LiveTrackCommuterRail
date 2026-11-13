@@ -35,8 +35,7 @@ CC BY 4.0, modificados. No hace falta clave ni cuenta.
 Metra y South Shore Line (Chicago), Renfe Cercanías y Rodalies (España),
 VR lähijunat (Finlandia), Vy, Go-Ahead Norge y Flytoget (Noruega), SL
 Pendeltåg, Västtågen y Arlanda Express (Suecia), NS Sprinter (Países Bajos),
-Irish Rail (Irlanda), Queensland Rail Citytrain, NSW TrainLink Intercity y
-V/Line (Australia). Claves y condiciones: [la tabla del README en
+Irish Rail (Irlanda), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line y Adelaide Metro (Australia). Claves y condiciones: [la tabla del README en
 inglés](README.md#supported-railroads).
 
 ## Parte de Live Track
