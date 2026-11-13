@@ -311,18 +311,21 @@ def toward_sydney(info: list | None) -> bool | None:
 
 
 def look(colour: str | None, toward: bool | None) -> dict[str, Any]:
-    """D4a-direction: the line's colour filled, white ring and label, leaving Sydney; swapped going to it."""
+    """D4a-direction: the line's colour filled, white ring and label, leaving Sydney; swapped going to it. The label's
+    glyphs are outlined in the FILL (Lee 2026-11-13 00:05: "outlined in the fill color so they are readable when they
+    enter the outer ring"): a label the same colour as the ring stays legible where it crosses it."""
     c = colour or DEFAULT_COLOUR
     fill, other = (WHITE, c) if toward is True else (c, WHITE)
     return {"marker_color": fill, "marker_ring_color": other, "marker_ring_width": RING_WIDTH,
-            "marker_label_color": other, "marker_label_outline_color": "none",
+            "marker_label_color": other, "marker_label_outline_color": fill,
             "marker_arrow_color": fill, "marker_arrow_outline_color": other}
 
 
 def look_not_in_service() -> dict[str, Any]:
-    """SSOT 4.3a: grey with a white ring and label, never swapped by direction (VR's rule here)."""
+    """SSOT 4.3a: grey with a white ring and label, never swapped by direction (VR's rule here); the label outlined in
+    the fill, as look()."""
     return {"marker_color": GREY, "marker_ring_color": WHITE, "marker_ring_width": RING_WIDTH,
-            "marker_label_color": WHITE, "marker_label_outline_color": "none",
+            "marker_label_color": WHITE, "marker_label_outline_color": GREY,
             "marker_arrow_color": GREY, "marker_arrow_outline_color": WHITE}
 
 

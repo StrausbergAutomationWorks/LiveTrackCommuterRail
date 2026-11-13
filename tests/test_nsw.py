@@ -187,13 +187,16 @@ class DirectionAndLook(unittest.TestCase):
                          ("#005AA3", "#FFFFFF", "#FFFFFF"))
         self.assertEqual((k["marker_arrow_color"], k["marker_arrow_outline_color"]), ("#005AA3", "#FFFFFF"))
         self.assertEqual(k["marker_ring_width"], 3)
-        self.assertEqual(k["marker_label_outline_color"], "none")
+        # The glyphs outlined in the fill, so a label crossing the ring stays readable (Lee 2026-11-13).
+        self.assertEqual(k["marker_label_outline_color"], "#005AA3")
+        self.assertEqual(nsw.look(None, False)["marker_label_outline_color"], "#F6891F")
 
     def test_toward_is_swapped(self):
         k = nsw.look("#005AA3", True)
         self.assertEqual((k["marker_color"], k["marker_ring_color"], k["marker_label_color"]),
                          ("#FFFFFF", "#005AA3", "#005AA3"))
         self.assertEqual((k["marker_arrow_color"], k["marker_arrow_outline_color"]), ("#FFFFFF", "#005AA3"))
+        self.assertEqual(k["marker_label_outline_color"], "#FFFFFF")
 
     def test_unknown_leaves_and_no_colour_is_orange(self):
         self.assertEqual(nsw.look("#005AA3", None), nsw.look("#005AA3", False))
@@ -285,7 +288,7 @@ class Decorate(unittest.TestCase):
         self.assertEqual((r["marker_color"], r["marker_ring_color"], r["marker_label_color"]),
                          ("#808080", "#FFFFFF", "#FFFFFF"))
         self.assertEqual((r["marker_arrow_color"], r["marker_arrow_outline_color"]), ("#808080", "#FFFFFF"))
-        self.assertEqual((r["marker_ring_width"], r["marker_label_outline_color"]), (3, "none"))
+        self.assertEqual((r["marker_ring_width"], r["marker_label_outline_color"]), (3, "#808080"))
         for k in ("line_name", "late_threshold_min", "very_late_threshold_min", "position_jump"):
             self.assertNotIn(k, r)
         # Not this function's to tidy: Fleet never gives a train out of service a next stop.
