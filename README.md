@@ -7,6 +7,48 @@ the railroad's live feed updates. Add more railroads one at a time.
 This integration is not sponsored by, affiliated with, or operated by any of
 the railroads it reads. It is original work, MIT-licensed.
 
+## Status
+
+**0.1.0**, the first release. It runs live on its development instance with
+every railroad below.
+
+## Requirements
+
+- Home Assistant 2026.11 or later.
+- A key of your own for Metra, the Swedish railroads (Trafikverket), NS,
+  NSW TrainLink Intercity (Transport for NSW) and V/Line (Transport Victoria);
+  where to get each is in the table below. The other railroads need none.
+- Home Assistant installs the Python packages it needs (`saw-livetrack`,
+  `gtfs-realtime-bindings` and `tzdata`) the first time the integration loads.
+
+## Installation
+
+### From the Marketplace
+
+Live Track Commuter Rail is not in the Marketplace catalog yet. Add it by its
+link:
+
+1. Go to **Settings > Marketplace** and select **Add from link**.
+2. Enter `StrausbergAutomationWorks/LiveTrackCommuterRail`. If asked for the
+   type, choose **Integration**.
+3. Install **Live Track Commuter Rail**.
+4. Restart Home Assistant. The Marketplace offers the restart as a repair under
+   **Settings > System > Repairs**.
+
+The Marketplace then offers each new release as an update.
+
+### By hand
+
+1. Download the source code of the
+   [latest release](https://github.com/StrausbergAutomationWorks/LiveTrackCommuterRail/releases/latest).
+2. Copy its `custom_components/live_track_commuter_rail` folder into the
+   `custom_components` folder of your Home Assistant configuration directory
+   (create that folder if it is not there), so the path ends in
+   `custom_components/live_track_commuter_rail/manifest.json`.
+3. Restart Home Assistant.
+
+To update by hand, replace the folder with the new release's and restart.
+
 ## Supported railroads
 
 | Railroad | Area | Key needed | Terms |
@@ -21,6 +63,11 @@ the railroads it reads. It is original work, MIT-licensed.
 | SL Pendeltåg | Sweden: Stockholm area, to Uppsala, Bålsta, Gnesta and Nynäshamn | Yes, your own, free: register at [data.trafikverket.se](https://data.trafikverket.se/oauth2/Account/register) | [Trafikverket open data](https://data.trafikverket.se); data [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | Västtågen pendeltåg | Sweden: Göteborg to Kungsbacka, Älvängen, Floda and Alingsås | Yes, as SL Pendeltåg (one key serves every Swedish railroad) | as SL Pendeltåg |
 | Arlanda Express | Sweden: Stockholm C to Arlanda Airport | Yes, as SL Pendeltåg | as SL Pendeltåg |
+| Renfe Cercanías and Rodalies (15 networks) | Spain: Madrid, Barcelona (Rodalies), Asturias, Sevilla, Cádiz, Málaga, Valencia, Murcia/Alicante, Cartagena, Ferrol, León, Bilbao, San Sebastián, Cantabria, Zaragoza | No | [Renfe open data](https://data.renfe.com/); data CC BY 4.0, credit Renfe |
+| Irish Rail | Ireland: commuter services around Dublin and Cork | No | Irish Rail publishes no terms; timetable from the [National Transport Authority](https://www.transportforireland.ie/transitData/PT_Data.html), CC BY 4.0 |
+| NS Sprinter | the Netherlands | Yes, your own: [NS API portal](https://apiportal.ns.nl/) | the NS API portal; timetable and delays from [OVapi](https://gtfs.ovapi.nl), CC0 |
+| NSW TrainLink Intercity | Australia: New South Wales, the Intercity lines out of Sydney | Yes, your own: [Transport for NSW Open Data](https://opendata.transport.nsw.gov.au/) | [Transport for NSW data licence](https://opendata.transport.nsw.gov.au/datalicence); data CC BY 4.0 |
+| V/Line commuter | Australia: Victoria, the Geelong, Ballarat, Bendigo, Seymour and Traralgon lines | Yes, your own: [Transport Victoria Open Data](https://opendata.transport.vic.gov.au/) | [Transport Victoria open data](https://discover.data.vic.gov.au/dataset/gtfs-realtime); data CC BY 4.0 |
 
 Read each railroad's terms before you use its data; they bind you, as the
 person receiving it.
@@ -193,3 +240,20 @@ Give the card the trains with
 [auto-entities](https://github.com/thomasloven/lovelace-auto-entities), filtering
 on `domain: geo_location` and `attributes: {source: live_track_commuter_rail}`,
 and use `marker_label` as the displayed attribute.
+
+## Data sources
+
+Every railroad is read at runtime, from its own published feed, by your Home
+Assistant; nothing from a live feed is in this repository. The table above
+links each railroad's terms, and each train credits its source in its
+`attribution` attribute. What the repository does ship (track and line files in
+`rail/`, built from the FRA's North American Rail Network, Fintraffic,
+Entur and OpenStreetMap) and the credit each owes are listed in
+[`ATTRIBUTION.md`](ATTRIBUTION.md). By installing this integration you use
+these services, and their terms apply to you.
+
+## Licence
+
+Code: MIT, see `LICENSE`. The files in `rail/` keep their sources' licences
+(public domain, CC BY 4.0, NLOD 2.0, ODbL 1.0, CC0), and the bundled map card
+its own; see [`ATTRIBUTION.md`](ATTRIBUTION.md).

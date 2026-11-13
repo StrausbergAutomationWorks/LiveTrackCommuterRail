@@ -1,15 +1,18 @@
 {
   "domain": "live_track_commuter_rail",
   "name": "Live Track Commuter Rail",
+  "after_dependencies": [
+    "lovelace"
+  ],
+  "categories": [
+    "vehicles_transport.public_transport"
+  ],
   "codeowners": [
     "@LeeS773-prog"
   ],
   "config_flow": true,
   "dependencies": [
     "http"
-  ],
-  "after_dependencies": [
-    "lovelace"
   ],
   "documentation": "https://github.com/StrausbergAutomationWorks/LiveTrackCommuterRail",
   "integration_type": "service",
