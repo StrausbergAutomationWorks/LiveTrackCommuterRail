@@ -146,11 +146,15 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # the key stored in this entry; its copy of the timetable on disk is the one distilled here.
         self._tfnsw = None
         self._tfnsw_version: Any = None
+        self._tfnsw_version2: Any = None
         if op.source == SOURCE_TFNSW:
             self._tfnsw = get_shared_tfnsw_client(hass, op.tfnsw_consumer, str(entry.data.get(CONF_API_KEY, "")))
+            if op.tfnsw_sydney_trains:
+                # Asked at every claim, right after it (saw-livetrack 0.2.37); the last release forgets it.
+                self._tfnsw.set_sydney_trains(op.tfnsw_consumer, True)
         raw_source = None
         if self._tfnsw is not None:
-            raw_source = self._tfnsw_zip
+            raw_source = partial(self._tfnsw_zip, op.tfnsw_timetable)
         elif self._renfe is not None:
             raw_source = self._renfe.static_zip
         elif self._entur is not None:
@@ -158,6 +162,14 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif self._irish is not None:
             raw_source = self._irish_zip
         self._static = StaticTimetable(hass, self._session, op, raw_source=raw_source)
+        # A second timetable beside the first (NSW: Sydney Trains' Intercity cut, SSOT 16), merged before use.
+        self._static2: StaticTimetable | None = None
+        self._merged_key: tuple[Any, Any] | None = None
+        self._merged: dict[str, Any] | None = None
+        second = op.static_second
+        if second is not None and self._tfnsw is not None:
+            self._static2 = StaticTimetable(hass, self._session, second,
+                                            raw_source=partial(self._tfnsw_zip, second.tfnsw_timetable))
         # Trains pushed through Oslo's tunnels where their fixes freeze (entur_push.py).
         self._entur_push = entur_push.EnturPush() if op.entur_push else None
         self._failures = 0
@@ -223,22 +235,45 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._tfnsw = None
             release_shared_tfnsw_client(self.hass, self.operator.tfnsw_consumer)
 
-    def _tfnsw_zip(self) -> bytes | None:
-        """The shared TfNSW client's timetable zip, or None before it has one (blocking: the executor; StaticTimetable
-        asks again in SOURCE_WAIT_S)."""
+    def _tfnsw_zip(self, timetable: str | None = None) -> bytes | None:
+        """The shared TfNSW client's copy of `timetable` (None: nswtrains), or None before it has one (blocking: the
+        executor; StaticTimetable asks again in SOURCE_WAIT_S)."""
         client = self._tfnsw
-        path = client.static_path() if client is not None else None
+        if client is None:
+            return None
+        path = client.static_path(timetable) if timetable else client.static_path()
         if path is None:
             return None
         with open(path, "rb") as fh:
             return fh.read()
 
-    def _read_tfnsw(self) -> tuple[Any, Any, Any]:
-        """(positions, trip updates, the client's timetable version). Blocking: the executor. Raises the client's
-        errors."""
+    def _tfnsw_version_of(self, timetable: str | None) -> Any:
         client = self._tfnsw
-        positions, updates = client.for_consumer(self.operator.tfnsw_consumer)
-        return positions, updates, client.static_version()
+        return client.static_version(timetable) if timetable else client.static_version()
+
+    def _read_tfnsw(self) -> tuple[Any, Any, Any, Any]:
+        """(positions, trip updates, the version of the client's copy each timetable is distilled from, the second's or
+        None). Blocking: the executor. Raises the client's errors."""
+        op = self.operator
+        client = self._tfnsw
+        positions, updates = client.for_consumer(op.tfnsw_consumer)
+        second = op.static_second
+        return (positions, updates, self._tfnsw_version_of(op.tfnsw_timetable),
+                self._tfnsw_version_of(second.tfnsw_timetable) if second is not None else None)
+
+    def _static_data(self) -> dict[str, Any] | None:
+        """The timetable everything reads: the first, or the first and second merged (op.static_merge), the merge kept
+        until either is replaced, so caches keyed on the timetable's identity hold."""
+        first = self._static.data
+        if self._static2 is None or self.operator.static_merge is None:
+            return first
+        second = self._static2.data
+        # The objects themselves, never their id(): a freed timetable's id can be reused by its successor.
+        key = self._merged_key
+        if key is None or key[0] is not first or key[1] is not second:
+            self._merged_key = (first, second)
+            self._merged = self.operator.static_merge(first, second)
+        return self._merged
 
     async def _fetch_tfnsw(self):
         """(positions, trip updates, version) from the shared TfNSW client, or None on a failed fetch. Every key refused
@@ -408,7 +443,11 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def timetable(self) -> dict[str, Any] | None:
-        return self._static.info
+        info = self._static.info
+        if self._static2 is not None:
+            # Both cuts, for diagnostics (NSW: nswtrains' and Sydney Trains').
+            return {"first": info, "second": self._static2.info}
+        return info
 
     @property
     def plausible_stats(self) -> dict[str, int] | None:
@@ -433,6 +472,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.trip_coverage = (hit, total)
         if timetable_stale(hit, total):
             self._static.request_refresh()
+            if self._static2 is not None:
+                self._static2.request_refresh()
             if not self._timetable_stale:
                 self._timetable_stale = True
                 _LOGGER.warning(
@@ -468,11 +509,15 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             got = await self._fetch_tfnsw()
             feed = None
             if got is not None:
-                feed, tu, version = got
+                feed, tu, version, version2 = got
                 if version != self._tfnsw_version:
                     if self._tfnsw_version is not None:
                         self._static.request_refresh()
                     self._tfnsw_version = version
+                if self._static2 is not None and version2 != self._tfnsw_version2:
+                    if self._tfnsw_version2 is not None:
+                        self._static2.request_refresh()
+                    self._tfnsw_version2 = version2
         elif op.source == SOURCE_ENTUR:
             # Both feeds, already cut to this consumer and codespace (trip updates None when that file failed).
             got = await self._fetch_entur()
@@ -542,10 +587,13 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._static.due():
             self.config_entry.async_create_background_task(
                 self.hass, self._static.async_refresh(), f"{op.id} timetable")
+        if self._static2 is not None and self._static2.due():
+            self.config_entry.async_create_background_task(
+                self.hass, self._static2.async_refresh(), f"{op.static_second.id} timetable")
 
         # Sweden's geometry for a Trafikverket operator (sweden_lines.SwedenGeometry), the cached timetable
-        # otherwise: everything below reads the one.
-        static = trv_static if trv_static is not None else self._static.data
+        # otherwise (with its second merged in, op.static_second): everything below reads the one.
+        static = trv_static if trv_static is not None else self._static_data()
         now = time.time()
         delays = None
         next_stops = None
@@ -590,7 +638,11 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         observations, stale = poll.fresh_only(op.parse(feed), now, op.max_fix_age_s)
         if op.obs_filter is not None:
             # The operator's own refusals (Norway: a finished run's train still in the feed).
-            observations = op.obs_filter(observations, static, now)
+            if op.obs_filter_updates:
+                # NSW: a finished run's end moves with its latest delay.
+                observations = op.obs_filter(observations, static, now, updates=tu)
+            else:
+                observations = op.obs_filter(observations, static, now)
         if self._plausible is not None:
             # Off the trip's own line, back along it or too fast: the last good fix.
             observations = self._plausible.filter(

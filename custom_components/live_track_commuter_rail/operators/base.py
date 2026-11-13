@@ -134,6 +134,21 @@ class Operator:
     ns_consumer: str | None = None
     # TfNSW: the consumer this operator registers with the shared client ("commuter"; saw_livetrack.tfnsw.CONSUMERS).
     tfnsw_consumer: str | None = None
+    # TfNSW: True asks the shared client for Sydney Trains' vehicles too (saw-livetrack 0.2.37,
+    # client.set_sydney_trains), merged with nswtrains' one per run-day (SSOT 16).
+    tfnsw_sydney_trains: bool = False
+    # TfNSW: which of the shared client's timetables this operator's static is distilled from (saw_livetrack.tfnsw
+    # NSWTRAINS or SYDNEYTRAINS). None: nswtrains.
+    tfnsw_timetable: str | None = None
+    # A second timetable distilled beside the first: an Operator that configures only its cut and its cache
+    # (saw_gtfs_<its id>.json; never registered as an entry), merged with the first by static_merge before anything reads
+    # the timetable (NSW: Sydney Trains' Intercity cut beside nswtrains' route_type 100 cut, SSOT 16). None: one.
+    static_second: Any = None
+    # (the first distilled timetable or None, the second or None) -> the one the coordinator reads.
+    static_merge: Callable[[dict[str, Any] | None, dict[str, Any] | None], dict[str, Any] | None] | None = None
+    # True: obs_filter is also given this poll's trip updates, as the keyword `updates` (NSW: a finished run's end is
+    # its last scheduled arrival plus its latest delay).
+    obs_filter_updates: bool = False
     # The cut timetable zip -> a table kept with the distilled timetable under "table", from the SAME bytes (Irish
     # Rail: saw_livetrack.irish_rail.read_timetable, the runs' table, beside the shapes it draws them on). None: none.
     static_table: Callable[[bytes], dict[str, Any]] | None = None

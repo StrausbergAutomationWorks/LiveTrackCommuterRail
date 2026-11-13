@@ -69,8 +69,8 @@ TIMETABLE = {
                       "KN56.x,13:52:00,13:55:00,KMA1,3\nKN99.x,08:00:00,08:00:00,KMA,1\n"
                       "HM1.x,24:10:00,24:10:00,KMA,1\nHM1.x,24:50:00,,BMD,2\n"
                       "BAD.x,09:00:00,09:00:00,KMA,1\n",
-    "trips.txt": "trip_id,route_id,shape_id,direction_id\nKN56.x,4T.T.SCO,S1,1\nKN99.x,4T.T.SCO,S1,0\n"
-                 "HM1.x,4T.T.HUN,S9,\nBAD.x,4T.T.SCO,S1,x\n",
+    "trips.txt": "trip_id,route_id,shape_id,direction_id,trip_headsign\nKN56.x,4T.T.SCO,S1,1,Kiama\n"
+                 "KN99.x,4T.T.SCO,S1,0,Bomaderry\nHM1.x,4T.T.HUN,S9,,Empty Train\nBAD.x,4T.T.SCO,S1,x,\n",
 }
 
 
@@ -98,8 +98,13 @@ class RunAndIdentity(unittest.TestCase):
     def test_line(self):
         self.assertEqual(nsw.line_of("4T.T.SCO"), "SCO")
         self.assertIsNone(nsw.line_of("4T.T."))
-        self.assertIsNone(nsw.line_of("SCO_1a"))
         self.assertIsNone(nsw.line_of(None))
+
+    def test_line_from_sydney_trains(self):
+        self.assertEqual(nsw.line_of("SCO_1a"), "SCO")
+        self.assertEqual(nsw.line_of(" CCN_2b "), "CCN")
+        for other in ("APS_1a", "CTY_NC1", "RTTA_DEF", "SCO", "SCO1a", "_1a", "WST_1a"):
+            self.assertIsNone(nsw.line_of(other), other)
 
 
 class Parse(unittest.TestCase):
@@ -142,7 +147,15 @@ class Extras(unittest.TestCase):
         # Ends by sequence, not by file order; parent station names, " Station" dropped.
         self.assertEqual(self.ex["trip"]["KN56.x"],
                          ["4T.T.SCO", 4, 1, "1", 13 * 3600 + 16 * 60, 13 * 3600 + 52 * 60, "Bomaderry", "Kiama",
-                          1, "BMD2"])
+                          1, "BMD2", "Kiama"])
+
+    def test_headsign_kept(self):
+        self.assertEqual(self.ex["trip"]["HM1.x"][10], "Empty Train")
+        self.assertEqual(self.ex["trip"]["BAD.x"][10], "")
+        # A timetable without the column.
+        tt = dict(TIMETABLE, **{"trips.txt": "trip_id,route_id,shape_id,direction_id\nKN56.x,4T.T.SCO,S1,1\n"})
+        ex = nsw.extras(zip_of(tt), {"sched": {"KN56.x": {}}}, {})
+        self.assertEqual(ex["trip"]["KN56.x"][10], "")
 
     def test_unknown_shape_and_direction_and_no_departure(self):
         row = self.ex["trip"]["HM1.x"]
@@ -262,6 +275,31 @@ class Decorate(unittest.TestCase):
         r = self.rec()
         nsw.decorate(r, _obs(), self.static)
         self.assertNotIn("icon_rotation_basis", r)
+
+    def test_not_in_service_is_grey_nis_with_its_run(self):
+        o = base.Obs(vehicle_id="E123-13", lat=-34.8, lon=150.67, observed_at=None, in_service=False, train=None,
+                     line="SCO", reported_course=None, trip_id="KN56.x")
+        r = self.rec(marker_label="NIS E123-13", next_stop="Kiama Station Platform 1")
+        nsw.decorate(r, o, self.static)
+        self.assertEqual(r["marker_label"], "NIS E123")
+        self.assertEqual((r["marker_color"], r["marker_ring_color"], r["marker_label_color"]),
+                         ("#808080", "#FFFFFF", "#FFFFFF"))
+        self.assertEqual((r["marker_arrow_color"], r["marker_arrow_outline_color"]), ("#808080", "#FFFFFF"))
+        self.assertEqual((r["marker_ring_width"], r["marker_label_outline_color"]), (3, "none"))
+        for k in ("line_name", "late_threshold_min", "very_late_threshold_min", "position_jump"):
+            self.assertNotIn(k, r)
+        # Not this function's to tidy: Fleet never gives a train out of service a next stop.
+        self.assertEqual(r["next_stop"], "Kiama Station Platform 1")
+        # Never swapped toward Sydney (KN56.x runs away here; a toward trip looks the same).
+        r2 = self.rec()
+        self.static["extras"]["trip"]["KN56.x"][3] = "1"
+        try:
+            nsw.decorate(r2, o, self.static)
+        finally:
+            self.static["extras"]["trip"]["KN56.x"][3] = "0"
+        self.assertEqual(r2["marker_color"], "#808080")
+        # The arrow from its shape, as any train's.
+        self.assertEqual(r["icon_rotation_deg"], 42.0)
 
     def test_unknown_trip_falls_back_to_the_feed(self):
         r = self.rec()
@@ -395,6 +433,253 @@ class Finished(unittest.TestCase):
         self.assertIsNone(nsw.epoch(True))
         self.assertIsNone(nsw.epoch("5"))
 
+    def test_a_late_run_ends_later(self):
+        # Ends 13:00; at 13:30 with a fix 301 s old: 26 minutes late keeps it, 24 does not, early is on time.
+        old = NOW - 301
+        self.assertEqual(len(nsw.drop_finished([_at(old)], self.static, NOW, {"KN56.x": 26 * 60})), 1)
+        self.assertEqual(len(nsw.drop_finished([_at(old)], self.static, NOW, {"KN56.x": 24 * 60})), 0)
+        self.assertEqual(len(nsw.drop_finished([_at(old)], self.static, NOW, {"KN56.x": -3600})), 0)
+        self.assertEqual(len(nsw.drop_finished([_at(old)], self.static, NOW, {"OTHER.x": 3600})), 0)
+        # Running early never brings the end forward: LATE.x ends 13:26, under 300 s before 13:30.
+        self.assertEqual(len(nsw.drop_finished([_at(NOW - 3600, "LATE.x")], self.static, NOW, {"LATE.x": -600})), 1)
+
+
+def _late_updates(trip, delay):
+    tu = gtfs_realtime_pb2.FeedMessage()
+    tu.header.gtfs_realtime_version = "2.0"
+    e = tu.entity.add()
+    e.trip_update.trip.trip_id = trip
+    e.trip_update.stop_time_update.add().arrival.delay = delay
+    return tu
+
+
+class Refine(unittest.TestCase):
+    static = {"extras": {"trip": {"KN56.x": ["r", 0, 0, "0", 12 * 3600, 13 * 3600, "a", "b", 1, "A", "Kiama"],
+                                  "E1.x": ["r", 0, 0, "0", 13 * 3600, 14 * 3600, "a", "b", 1, "A", "Empty Train"],
+                                  "OLD.x": ["r", 0, 0, "0", 13 * 3600, 14 * 3600, "a", "b", 1, "A"]}}}
+
+    def test_empty_trains_are_not_in_service(self):
+        e, r, o = _at(NOW - 60, "E1.x"), _at(NOW - 60, "KN56.x"), _at(NOW - 60, "OLD.x")
+        got = nsw.refine([e, r, o], self.static, NOW)
+        self.assertEqual(len(got), 3)
+        self.assertFalse(got[0].in_service)
+        self.assertIsNone(got[0].train)
+        self.assertEqual((got[0].trip_id, got[0].vehicle_id, got[0].line), ("E1.x", e.vehicle_id, e.line))
+        self.assertIs(got[1], r)
+        # A row from before the headsign was kept is never an Empty Train.
+        self.assertIs(got[2], o)
+
+    def test_finished_runs_dropped_with_their_delay(self):
+        old = _at(NOW - 301, "KN56.x")
+        self.assertEqual(nsw.refine([old], self.static, NOW), [])
+        self.assertEqual(nsw.refine([old], self.static, NOW, updates=None), [])
+        self.assertEqual(nsw.refine([old], self.static, NOW, updates=_late_updates("KN56.x", 30 * 60)), [old])
+
+    def test_is_empty(self):
+        self.assertTrue(nsw.is_empty(self.static["extras"]["trip"]["E1.x"]))
+        self.assertFalse(nsw.is_empty(self.static["extras"]["trip"]["KN56.x"]))
+        self.assertFalse(nsw.is_empty(self.static["extras"]["trip"]["OLD.x"]))
+        self.assertFalse(nsw.is_empty(None))
+        self.assertFalse(nsw.refine([], None, NOW))
+
+
+SYD_TRIP = "C151.1421.149.64.H.8.92125932"     # Sydney Trains' id shape: run, service 1421.149.64, ...
+NSW_TRIP = "KN56.131126.16.N.2.1316"            # nswtrains': run, run date 131126, ...
+
+
+class SydneyCut(unittest.TestCase):
+    def test_the_routes_the_client_hands_this_operator(self):
+        keep = nsw.sydney_intercity
+        for rid in ("CCN_1a", "BMT_2", "SCO_1b", "SHL_2e", "HUN_1a"):
+            self.assertTrue(keep({"route_id": rid, "agency_id": "NSWTrains"}), rid)
+        for rid, agency in (("APS_1a", "SydneyTrains"), ("T3_1", "SydneyTrains"), ("CTY_NC1", "NSWTrains"),
+                            ("RTTA_DEF", "SydneyTrains"), ("", "NSWTrains")):
+            self.assertFalse(keep({"route_id": rid, "agency_id": agency}), rid)
+        self.assertFalse(keep({}))
+
+    def test_an_unlisted_prefix_goes_by_its_agency(self):
+        self.assertTrue(nsw.sydney_intercity({"route_id": "NEW_1", "agency_id": "NSWTrains"}))
+        self.assertFalse(nsw.sydney_intercity({"route_id": "NEW_1", "agency_id": "SydneyTrains"}))
+        self.assertFalse(nsw.sydney_intercity({"route_id": "NEW_1"}))
+
+
+def _first():
+    return {"v": 4, "tz": "Australia/Sydney", "fetched_at": 100.0, "feed_version": "nsw",
+            "stops": {"S1": "Kiama Station, Platform 1", "A": "Gerringong Station"},
+            "stop_pos": {"S1": [-34.67, 150.85], "A": [-34.74, 150.82]},
+            "routes": {"4T.T.SCO": "South Coast Line"},
+            "sched": {NSW_TRIP: {"A": 1}},
+            "rail_shapes": [[[0, 0], [0, 1]], [[1, 0], [1, 1]]],
+            "trip_shapes": {NSW_TRIP: [1, 0]},
+            "extras": {"route": {"4T.T.SCO": ["SCO", "#005AA3", "South Coast Line"]},
+                       "trip": {NSW_TRIP: ["4T.T.SCO", 1, 0, "0", 0, 1, "a", "b", 1, "A"]}}}
+
+
+def _second():
+    return {"v": 4, "tz": "Australia/Sydney", "fetched_at": 50.0,
+            "stops": {"S1": "Kiama Station Platform 1", "B": "Central Station"},
+            "stop_pos": {"S1": [-34.671, 150.851], "B": [-33.88, 151.21]},
+            "routes": {"CCN_1a": "Central to Newcastle Interchange via Strathfield"},
+            "sched": {SYD_TRIP: {"B": 2}},
+            "stop_times": {SYD_TRIP: {"1": ["B", "13:00:00"]}},
+            "trip_routes": {SYD_TRIP: "CCN_1a"},
+            "rail_shapes": [[[2, 0], [2, 1]]],
+            "trip_shapes": {SYD_TRIP: [0, 1], "NOLINE.x": [-1, 0]},
+            "extras": {"route": {"CCN_1a": ["CCN", "#D11F2F", "Central to Newcastle Interchange"]},
+                       "trip": {SYD_TRIP: ["CCN_1a", 0, 1, "1", 0, 1, "Central", "Newcastle Interchange", 1, "B",
+                                           "Newcastle Interchange"],
+                                "NOSHAPE.x": ["CCN_1a", -1, 0, None, 0, 1, "", "", 1, "B", "Empty Train"]}}}
+
+
+class Merge(unittest.TestCase):
+    def test_one_missing(self):
+        a, b = _first(), _second()
+        self.assertIsNone(nsw.merge(None, None))
+        self.assertIs(nsw.merge(a, None), a)
+        self.assertIs(nsw.merge(None, b), b)
+
+    def test_trips_from_both_shapes_shifted(self):
+        m = nsw.merge(_first(), _second())
+        self.assertEqual(len(m["rail_shapes"]), 3)
+        self.assertEqual(m["rail_shapes"][2], [[2, 0], [2, 1]])
+        self.assertEqual(m["trip_shapes"], {NSW_TRIP: [1, 0], SYD_TRIP: [2, 1], "NOLINE.x": [-1, 0]})
+        self.assertEqual(m["extras"]["trip"][SYD_TRIP][:3], ["CCN_1a", 2, 1])
+        self.assertEqual(m["extras"]["trip"][SYD_TRIP][3:], _second()["extras"]["trip"][SYD_TRIP][3:])
+        self.assertEqual(m["extras"]["trip"]["NOSHAPE.x"][1], -1)
+        self.assertEqual(m["extras"]["trip"][NSW_TRIP], _first()["extras"]["trip"][NSW_TRIP])
+        self.assertEqual(set(m["sched"]), {NSW_TRIP, SYD_TRIP})
+        self.assertEqual(m["stop_times"], {SYD_TRIP: {"1": ["B", "13:00:00"]}})
+        self.assertEqual(m["trip_routes"], {SYD_TRIP: "CCN_1a"})
+        self.assertEqual(set(m["extras"]["route"]), {"4T.T.SCO", "CCN_1a"})
+        self.assertEqual(set(m["routes"]), {"4T.T.SCO", "CCN_1a"})
+
+    def test_a_shared_stop_keeps_nswtrains_entry(self):
+        m = nsw.merge(_first(), _second())
+        self.assertEqual(m["stops"]["S1"], "Kiama Station, Platform 1")
+        self.assertEqual(m["stop_pos"]["S1"], [-34.67, 150.85])
+        self.assertEqual(m["stops"]["B"], "Central Station")
+        self.assertEqual(m["feed_version"], "nsw")
+
+    def test_fetched_at_moves_when_either_moves(self):
+        a, b = _first(), _second()
+        self.assertEqual(nsw.merge(a, b)["fetched_at"], 150.0)
+        b2 = dict(b, fetched_at=60.0)
+        self.assertNotEqual(nsw.merge(a, b2)["fetched_at"], nsw.merge(a, b)["fetched_at"])
+        # The first alone and the pair never share a token (an older second appearing still moves it).
+        self.assertNotEqual(nsw.merge(a, b)["fetched_at"], a["fetched_at"])
+
+    def test_inputs_untouched(self):
+        a, b = _first(), _second()
+        nsw.merge(a, b)
+        self.assertEqual((a, b), (_first(), _second()))
+
+    def test_without_stop_times_none_is_made(self):
+        b = _second()
+        del b["stop_times"], b["trip_routes"]
+        m = nsw.merge(_first(), b)
+        self.assertNotIn("stop_times", m)
+        self.assertNotIn("trip_routes", m)
+
+
+def _sydney_updates(trip=SYD_TRIP, stops=("B", "C", "D"), seq=0):
+    tu = gtfs_realtime_pb2.FeedMessage()
+    tu.header.gtfs_realtime_version = "2.0"
+    e = tu.entity.add()
+    e.id = "s"
+    e.trip_update.trip.trip_id = trip
+    e.trip_update.trip.start_date = "20261113"
+    for i, sid in enumerate(stops):
+        u = e.trip_update.stop_time_update.add()
+        u.stop_id, u.stop_sequence = sid, seq
+        u.arrival.delay = 60 * (i + 1)
+    return tu
+
+
+class SydneySequences(unittest.TestCase):
+    static = {"stop_times": {SYD_TRIP: {"3": ["D", "13:20:00"], "1": ["B", "13:00:00"], "2": ["C", "13:10:00"],
+                                        "x": ["Z", "?"], "4": []}},
+              "extras": {"trip": {SYD_TRIP: ["CCN_1a", 0, 0, "0", 0, 1, "Central", "Gosford", 1, "B", "Gosford"]}}}
+
+    def calls(self, feed):
+        return [(u.stop_sequence, u.stop_id) for u in feed.entity[0].trip_update.stop_time_update]
+
+    def test_rows_in_timetable_order(self):
+        self.assertEqual(nsw.rows_of(self.static, SYD_TRIP), [(1, "B"), (2, "C"), (3, "D")])
+        self.assertEqual(nsw.rows_of(self.static, "OTHER"), [])
+        self.assertEqual(nsw.rows_of(None, SYD_TRIP), [])
+
+    def test_sequences_filled_from_its_own_rows(self):
+        tu = _sydney_updates()
+        self.assertEqual(nsw.fill_sequences(tu, self.static), 3)
+        self.assertEqual(self.calls(tu), [(1, "B"), (2, "C"), (3, "D")])
+
+    def test_a_stop_it_cannot_place_goes(self):
+        tu = _sydney_updates(stops=("B", "Q", "D"))
+        self.assertEqual(nsw.fill_sequences(tu, self.static), 2)
+        self.assertEqual(self.calls(tu), [(1, "B"), (3, "D")])
+        tu = _sydney_updates(trip="C999.1421.149.64.H.8.1")
+        self.assertEqual(nsw.fill_sequences(tu, self.static), 0)
+        self.assertEqual(self.calls(tu), [])
+
+    def test_nswtrains_trips_left_as_sent(self):
+        tu = _sydney_updates(trip=NSW_TRIP, seq=7)
+        self.assertEqual(nsw.fill_sequences(tu, self.static), 0)
+        self.assertEqual(self.calls(tu), [(7, "B"), (7, "C"), (7, "D")])
+        tu.entity.add().id = "no trip update"
+        self.assertEqual(nsw.fill_sequences(tu, self.static), 0)
+
+    def test_the_origin_found_after_the_fill(self):
+        seen = []
+        n, d = nsw.next_stops, nsw.stop_delays
+        try:
+            nsw.next_stops = lambda feed, static, now: seen.append(feed) or {}
+            nsw.stop_delays = lambda feed, static, now: {}
+            tu = _sydney_updates()
+            nsw.stops_from_updates(tu, self.static, NOW)
+        finally:
+            nsw.next_stops, nsw.stop_delays = n, d
+        self.assertEqual(self.calls(seen[0]), [(2, "C"), (3, "D")])
+        # The caller's feed is not changed.
+        self.assertEqual(self.calls(tu), [(0, "B"), (0, "C"), (0, "D")])
+
+    def test_next_stop_and_lateness_from_delays_alone(self):
+        # The real library: Sydney Trains' updates carry delays and no times; the rows give the scheduled times.
+        static = {"v": 4, "tz": "Australia/Sydney", "stops": {"B": "Central Station Platform 1",
+                                                              "C": "Strathfield Station Platform 3",
+                                                              "D": "Hornsby Station Platform 2"},
+                  "sched": {SYD_TRIP: {"B": 13 * 3600, "C": 13 * 3600 + 600, "D": 13 * 3600 + 1200}},
+                  **{k: v for k, v in self.static.items()}}
+        now = dt.datetime(2026, 11, 13, 13, 12, tzinfo=SYD).timestamp()
+        nxt, late = nsw.stops_from_updates(_sydney_updates(), static, now)
+        name, eta = nxt[SYD_TRIP]
+        # C was due 13:10 + 2 min late = 13:12, not yet 30 s past: still next.
+        self.assertEqual(name, "Strathfield Station Platform 3")
+        self.assertEqual(eta, dt.datetime(2026, 11, 13, 13, 12, tzinfo=SYD).timestamp())
+        self.assertEqual(late[SYD_TRIP], 120)
+        # Unfilled, the first update listed (the origin, B, behind the train) would have been taken.
+        self.assertEqual(nsw.next_stops(_sydney_updates(), static, now)[SYD_TRIP], ("Central Station Platform 1", None))
+
+
+class LatestDelays(unittest.TestCase):
+    def test_the_last_update_with_a_delay(self):
+        tu = _sydney_updates()
+        e = tu.entity.add()
+        e.trip_update.trip.trip_id = NSW_TRIP
+        u = e.trip_update.stop_time_update.add()
+        u.departure.delay = 90
+        e.trip_update.stop_time_update.add().stop_id = "no delay"
+        e2 = tu.entity.add()
+        e2.trip_update.trip.trip_id = "NODELAY.x"
+        e2.trip_update.stop_time_update.add().stop_id = "A"
+        tu.entity.add().id = "empty"
+        self.assertEqual(nsw.latest_delays(tu), {SYD_TRIP: 180, NSW_TRIP: 90})
+        self.assertEqual(nsw.latest_delays(None), {})
+
+    def test_arrival_before_departure(self):
+        tu = _sydney_updates(stops=("B",))
+        tu.entity[0].trip_update.stop_time_update[0].departure.delay = 999
+        self.assertEqual(nsw.latest_delays(tu), {SYD_TRIP: 60})
+
 
 class _Resp:
     def __init__(self, body):
@@ -460,8 +745,38 @@ class Registry(unittest.TestCase):
         self.assertFalse(op.narn)
         self.assertEqual(op.off_rail_m, 1000.0)
         self.assertIs(op.decorate, nsw.decorate)
-        self.assertIs(op.obs_filter, nsw.drop_finished)
+        self.assertIs(op.obs_filter, nsw.refine)
+        self.assertTrue(op.obs_filter_updates)
+        self.assertEqual(op.max_fix_age_s, 600.0)
         self.assertIn("Transport for NSW", op.attribution)
+
+    def test_sydney_trains_asked_for_and_its_timetable_merged(self):
+        op = ops.OPERATORS["nsw_trainlink"]
+        self.assertTrue(op.tfnsw_sydney_trains)
+        self.assertIsNone(op.tfnsw_timetable)
+        self.assertIs(op.static_second, nsw.SYDNEY_CUT)
+        self.assertIs(op.static_merge, nsw.merge)
+        cut = nsw.SYDNEY_CUT
+        self.assertEqual(cut.id, "nsw_trainlink_sydneytrains")
+        self.assertEqual(cut.tfnsw_timetable, "sydneytrains")
+        self.assertTrue(cut.static_url.endswith("/schedule/sydneytrains"))
+        self.assertTrue(cut.static_window)
+        self.assertIsNone(cut.static_route_types)
+        self.assertIsNone(cut.static_route_prefixes)
+        self.assertIs(cut.static_route_keep, nsw.sydney_intercity)
+        self.assertTrue(cut.static_stop_times)
+        self.assertIs(cut.static_extras, nsw.extras)
+        self.assertGreaterEqual(cut.static_max_bytes, 64 * 1024 * 1024)
+        # Never an entry of its own; nobody else asks or merges.
+        self.assertNotIn(cut, ops.OPERATORS.values())
+        self.assertNotIn(cut.id, ops.OPERATORS)
+        self.assertEqual(cut.regions, ())
+        for other in ops.OPERATORS.values():
+            if other is not op:
+                self.assertFalse(other.tfnsw_sydney_trains, other.id)
+                self.assertIsNone(other.static_second, other.id)
+                self.assertIsNone(other.static_merge, other.id)
+                self.assertFalse(other.obs_filter_updates, other.id)
 
     @unittest.skipUnless(LIB_REF.exists(), "LiveTrackCore clone not present")
     def test_shared_client_copy_is_byte_exact(self):
