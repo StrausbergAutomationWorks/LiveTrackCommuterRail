@@ -313,9 +313,11 @@ one that matches your language.
   open GTFS-Realtime feed through one client shared with the other Live Track
   integrations that read it (the same feed carries its trams, buses and
   coaches). The positions are GPS with the train's own bearing. Adelaide
-  publishes no train number, so the label is the route code Adelaide Metro
-  uses on its website and timetables (BEL, FLNDRS, GAW, GAWC, GRNG, NOAR,
-  OSBORN, OUTHA, PTDOCK, SALIS, SEAFRD); the hover box reads "SEAFRD to
+  publishes no train number, so the label is the first three letters of the
+  route code Adelaide Metro uses on its website and timetables (BEL, FLNDRS,
+  GAW, GAWC, GRNG, NOAR, OSBORN, OUTHA, PTDOCK, SALIS, SEAFRD), so that it
+  fits the marker: SEA, FLN, GAW (Gawler and Gawler Central alike) and so on.
+  The hover box gives the full code: "SEAFRD to
   Seaford · railcar 4006". The colours are the rail network map's: Belair
   green, Seaford & Flinders orange, Gawler red, Outer Harbor, Port Dock &
   Grange blue. Leaving the City the disc is filled in the line's colour with

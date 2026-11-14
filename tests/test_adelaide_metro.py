@@ -192,7 +192,7 @@ class Decorate(unittest.TestCase):
 
     def test_leaving_the_city(self):
         r = self.rec(obs("684256", "SEAFRD"))
-        self.assertEqual(r["marker_label"], "SEAFRD")
+        self.assertEqual(r["marker_label"], "SEA")                     # Lee 2026-11-13 19:33: the first 3 letters
         self.assertEqual(r["line_name"], "SEAFRD to Seaford · railcar 4006")
         self.assertEqual((r["late_threshold_min"], r["very_late_threshold_min"]), (5, 10))
         self.assertEqual(r["marker_color"], "#FF7F30")
@@ -210,23 +210,23 @@ class Decorate(unittest.TestCase):
 
     def test_a_trip_the_timetable_lacks(self):
         r = self.rec(obs("555", "GAWC", vid="4003"))
-        self.assertEqual(r["marker_label"], "GAWC")
+        self.assertEqual(r["marker_label"], "GAW")                     # GAWC and GAW both read GAW
         self.assertEqual(r["line_name"], "GAWC · railcar 4003")
         self.assertEqual(r["marker_color"], "#C23B33")
 
     def test_the_route_from_the_trip_when_the_row_has_none(self):
         r = self.rec(obs("684256", None))
-        self.assertEqual(r["marker_label"], "SEAFRD")
+        self.assertEqual(r["marker_label"], "SEA")
 
     def test_no_timetable(self):
         r = self.rec(obs("684256", "OUTHA", vid="3011"), st={})
-        self.assertEqual(r["marker_label"], "OUTHA")
+        self.assertEqual(r["marker_label"], "OUT")
         self.assertEqual(r["marker_color"], "#007DC3")
         self.assertEqual(r["line_name"], "OUTHA · railcar 3011")
 
     def test_a_route_off_the_map_its_short_name_and_its_own_colour(self):
         r = self.rec(obs("700001", "NEW1", vid="4200"))
-        self.assertEqual(r["marker_label"], "NEWLN")
+        self.assertEqual(r["marker_label"], "NEW")
         self.assertEqual(r["line_name"], "NEWLN to City · railcar 4200")
         self.assertEqual(r["marker_ring_color"], "#123ABC")             # toward the City: the colour as the ring
 

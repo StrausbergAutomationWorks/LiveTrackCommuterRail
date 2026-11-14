@@ -14,8 +14,11 @@ vehicle.label are the railcar's own number (3011, 4006): the identity, as Metra'
 LABEL (Lee: "Read the maps of Adelaide that I saved"): the maps print no codes, only line names and colours; Adelaide
 Metro's own website names each train route by its code ("FLNDRS - Flinders to City"; Adelaide Railway Station's page
 lists BEL, FLNDRS, GAW, GAWC, GRNG, NOAR, OSBORN, OUTHA, PTDOCK, SALIS, SEAFRD), the timetable's route_short_name and
-route_id. So the label is the route code. HOVER "SEAFRD to Seaford · railcar 4006": the code, the trip's headsign, the
-railcar.
+route_id. So the label is the route code, CUT TO ITS FIRST THREE LETTERS (Lee 2026-11-13 19:33 CST: "Use the first 3
+letters for Adelaide"), because the full code did not fit the 28 px disc: MEASURED on the live map, GAWC 26 px and
+PTDOCK 31 px in a 23 px label box, and "GAWC" read "GAWG" on the white disc (SSOT 19). GAW and GAWC both read GAW;
+FLN, GRN, NOA, OSB, OUT, PTD, SAL, SEA, BEL for the rest. HOVER "SEAFRD to Seaford · railcar 4006": the FULL code, the
+trip's headsign, the railcar.
 
 THE LOOK: the line's colour from Adelaide Metro's rail network map of 26 January 2026 (10_Reference, its legend,
 MEASURED from the vector paths, bin\\adl_map_read.txt): Belair #6ABF4B, Seaford & Flinders #FF7F30, Gawler #C23B33,
@@ -54,6 +57,7 @@ LATE_MIN = 5
 VERY_LATE_MIN = 10
 MAX_FIX_AGE_S = 300
 OFF_RAIL_M = 1000.0
+LABEL_LEN = 3             # Lee 2026-11-13 19:33: the label is the route code's first three letters
 
 # The map's four lines (legend wording) and their colours; each route code to its line.
 LINES: dict[str, tuple[str, str]] = {
@@ -161,7 +165,7 @@ def decorate(rec: dict[str, Any], obs: Obs, static: dict[str, Any] | None) -> No
     if not obs.in_service:
         return
     if code:
-        rec["marker_label"] = code
+        rec["marker_label"] = code[:LABEL_LEN]
     head = info[2] if info and len(info) > 2 and info[2] else None
     parts = [code + (" to " + head if head else "")] if code else []
     parts.append("railcar " + obs.vehicle_id)
