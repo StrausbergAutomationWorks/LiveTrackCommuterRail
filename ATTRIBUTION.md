@@ -53,6 +53,10 @@ CC BY 4.0, https://opendata.transport.nsw.gov.au/datalicence.
 South Australia, CC BY 4.0, https://www.adelaidemetro.com.au/developer-info (the attribution the Government of
 South Australia requests). The piping shrike emblem and Adelaide Metro's trademarks are not used.
 
+**Perth trains** (Western Australia). Timetable data available free of charge from www.transperth.wa.gov.au (the
+statement the Public Transport Authority of Western Australia's licence requires,
+https://www.transperth.wa.gov.au/About/Spatial-Data-Access). No PTA trademark is used with the data.
+
 **V/Line commuter** (Victoria). Data: Transport Victoria (opendata.transport.vic.gov.au), CC BY 4.0,
 https://discover.data.vic.gov.au/dataset/gtfs-realtime.
 

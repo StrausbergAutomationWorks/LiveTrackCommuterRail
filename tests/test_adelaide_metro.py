@@ -103,7 +103,7 @@ class Registry(unittest.TestCase):
 
     def test_the_manifest_asks_for_0_2_39(self):
         m = json.loads((HERE / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("saw-livetrack[gtfs]>=0.2.39,<0.3", m["requirements"])
+        self.assertIn("saw-livetrack[gtfs]>=0.2.40,<0.3", m["requirements"])
 
     @unittest.skipUnless(LIB_REF.exists(), "LiveTrackCore clone not present")
     def test_the_shared_copy_is_byte_exact(self):

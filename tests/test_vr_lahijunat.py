@@ -385,7 +385,8 @@ class OperatorTests(unittest.TestCase):
             if op.id == "vr_lahijunat" or op.source in (base.SOURCE_RENFE, base.SOURCE_ENTUR,
                                                         base.SOURCE_TRAFIKVERKET, base.SOURCE_IRISH_RAIL,
                                                         base.SOURCE_NS, base.SOURCE_TFNSW,
-                                                        base.SOURCE_TRANSPORT_VIC, base.SOURCE_ADELAIDE_METRO):
+                                                        base.SOURCE_TRANSPORT_VIC, base.SOURCE_ADELAIDE_METRO,
+                                                        base.SOURCE_TRANSPERTH):
                 continue   # Renfe's: tests/test_renfe.py; Norway's: tests/test_norway.py; Sweden's: test_sweden.py;
                 #            Irish Rail's: test_irish_rail.py; NS's: test_ns.py; NSW's: test_nsw.py; V/Line's: test_vline.py;
                 #            Adelaide's: test_adelaide_metro.py

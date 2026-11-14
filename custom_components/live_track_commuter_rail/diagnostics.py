@@ -36,6 +36,7 @@ async def async_get_config_entry_diagnostics(
         "trip_coverage": coordinator.trip_coverage,
         "renfe_client": coordinator.renfe_stats,
         "adelaide_metro_client": coordinator.adelaide_metro_stats,
+        "transperth_client": coordinator.transperth_stats,
         "trafikverket_client": coordinator.trafikverket_stats,
         "tfnsw_client": coordinator.tfnsw_stats,
         "transport_vic_client": coordinator.vic_stats,

@@ -18,8 +18,8 @@ Sevilla, Bilbao and ten more Spanish networks), **VR and HSL commuter trains**
 Stavanger), **SL Pendeltåg**, **Västtågen** and **Arlanda Express** (Stockholm,
 Göteborg), **NS Sprinter** (the Netherlands), **Irish Rail** (Dublin, Cork),
 **Queensland Rail Citytrain** (Brisbane), **NSW TrainLink Intercity** (Sydney),
-**V/Line** (Melbourne, Geelong, Ballarat, Bendigo) and **Adelaide Metro**
-(Adelaide's trains).
+**V/Line** (Melbourne, Geelong, Ballarat, Bendigo), **Adelaide Metro**
+(Adelaide's trains) and **Perth's trains** (from the timetable).
 
 ## Part of Live Track
 
@@ -47,8 +47,8 @@ the railroads it reads. It is original work, MIT-licensed.
 
 ## Status
 
-**0.1.2.** It runs live on its development instance with every railroad
-below. New in 0.1.2: Adelaide Metro's trains. New in 0.1.1: the setup dialog in Finnish, Swedish, Norwegian Bokmål,
+**0.1.4.** It runs live on its development instance with every railroad
+below. New in 0.1.4: Perth's trains, drawn from the timetable (Perth publishes no live positions). New in 0.1.3: Adelaide's labels shortened to fit the marker. New in 0.1.2: Adelaide Metro's trains. New in 0.1.1: the setup dialog in Finnish, Swedish, Norwegian Bokmål,
 Spanish, Dutch and Irish, and "What appears" for every railroad.
 
 ## Requirements
@@ -107,6 +107,7 @@ To update by hand, replace the folder with the new release's and restart.
 | NS Sprinter | the Netherlands | Yes, your own: [NS API portal](https://apiportal.ns.nl/) | the NS API portal; timetable and delays from [OVapi](https://gtfs.ovapi.nl), CC0 |
 | NSW TrainLink Intercity | Australia: New South Wales, the Intercity lines out of Sydney | Yes, your own: [Transport for NSW Open Data](https://opendata.transport.nsw.gov.au/) | [Transport for NSW data licence](https://opendata.transport.nsw.gov.au/datalicence); data CC BY 4.0 |
 | Adelaide Metro | Australia: South Australia, Adelaide's Belair, Gawler, Outer Harbor and Seaford lines | No | [Adelaide Metro developer information](https://www.adelaidemetro.com.au/developer-info); data CC BY 4.0, credit Adelaide Metro - Department for Infrastructure and Transport, South Australia |
+| Perth trains | Australia: Western Australia, Perth's Airport, Armadale, Ellenbrook, Fremantle, Mandurah, Midland, Thornlie-Cockburn and Yanchep lines | No | [Spatial data access](https://www.transperth.wa.gov.au/About/Spatial-Data-Access) (the Public Transport Authority's licence); the data is available free of charge from www.transperth.wa.gov.au |
 | V/Line commuter | Australia: Victoria, the Geelong, Ballarat, Bendigo, Seymour and Traralgon lines | Yes, your own: [Transport Victoria Open Data](https://opendata.transport.vic.gov.au/) | [Transport Victoria open data](https://discover.data.vic.gov.au/dataset/gtfs-realtime); data CC BY 4.0 |
 
 Read each railroad's terms before you use its data; they bind you, as the
@@ -325,6 +326,20 @@ one that matches your language.
   ring and label in the line's colour. Late from 5 minutes (Adelaide Metro's
   own rule, on time within 4:59), very late from 10. A position more than
   1 km from every Adelaide rail route, or more than 5 minutes old, is refused.
+* **Western Australia** (Perth's trains, one entry). Perth publishes no live
+  positions, so every train is drawn from the timetable: placed along its own
+  route by its scheduled times and shown as an estimate, never as a fix, with
+  no delay. The timetable is the Public Transport Authority's, read through one
+  client shared with the other Live Track integrations (it also carries
+  Transwa's regional trains and Perth's buses and ferry, which are not drawn
+  here) and checked once a day. The label is the line's first three letters
+  (MAN, YAN, ARM, FRE, MID, ELL, AIR, THO; STA for a Stadium Special); the hover
+  box reads "Mandurah Line · Perth Underground–Mandurah". The colours are the
+  network map's. Leaving Perth (Perth, Perth Underground or Elizabeth Quay) the
+  disc is filled in the line's colour with a white ring and label; toward Perth
+  it is white with the ring and label in the line's colour; an Airport Line
+  train turns to leaving once it leaves Perth. The Armadale Line's label is
+  black on its yellow.
 * Two count sensors per railroad: **Trains in service** and **Vehicles not in
   service**.
 
@@ -396,4 +411,4 @@ junat reaaliajassa · HSL · pendeltåg i realtid · tåg på kartan · tog i
 sanntid · Vy · Flytoget · NS treinen live · Sprinter · treinkaart · Irish Rail
 live trains · traenacha beo · Queensland Rail · Translink · NSW TrainLink ·
 Transport for NSW · V/Line · Transport Victoria · Adelaide Metro trains ·
-Adelaide train tracker
+Adelaide train tracker · Perth trains · Perth train tracker

@@ -58,6 +58,10 @@ from .shared_ns import get_shared_ns_client, release_shared_ns_client
 from .shared_renfe import get_shared_renfe_client, release_shared_renfe_client
 from .operators.base import SOURCE_ADELAIDE_METRO
 from .shared_adelaide_metro import get_shared_adelaide_metro_client, release_shared_adelaide_metro_client
+from .operators.base import SOURCE_TRANSPERTH
+from .shared_transperth import get_shared_transperth_client, release_shared_transperth_client
+from . import perth_runs
+from saw_livetrack.transperth import TransperthError
 from .shared_entur import get_shared_entur_client, release_shared_entur_client
 from .shared_trafikverket import get_shared_trafikverket_client, release_shared_trafikverket_client
 from .shared_tfnsw import get_shared_tfnsw_client, release_shared_tfnsw_client
@@ -155,6 +159,14 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if op.source == SOURCE_IRISH_RAIL:
             self._irish = get_shared_irish_rail_client(hass, op.irish_rail_consumer)
             self._irish_runs = irish_runs.IrishRuns()
+        # Transperth (Perth, SSOT 20): NO realtime. The ONE shared client per Home Assistant keeps the PTA's zip on disk,
+        # this operator's consumer claimed; every run is drawn from the timetable cut from it (perth_runs.py).
+        self._perth = None
+        self._perth_runs: perth_runs.PerthRuns | None = None
+        self._perth_version: Any = None
+        if op.source == SOURCE_TRANSPERTH:
+            self._perth = get_shared_transperth_client(hass, op.transperth_consumer)
+            self._perth_runs = perth_runs.PerthRuns()
         # Transport for NSW (SSOT 16): the ONE shared client per Home Assistant, this operator's consumer registered with
         # the key stored in this entry; its copy of the timetable on disk is the one distilled here.
         self._tfnsw = None
@@ -189,6 +201,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raw_source = self._entur_zip
         elif self._irish is not None:
             raw_source = self._irish_zip
+        elif self._perth is not None:
+            raw_source = self._perth_zip
         self._static = StaticTimetable(hass, self._session, op, raw_source=raw_source)
         # A second timetable beside the first (NSW: Sydney Trains' Intercity cut, SSOT 16), merged before use.
         self._static2: StaticTimetable | None = None
@@ -259,6 +273,9 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._irish is not None:
             self._irish = None
             release_shared_irish_rail_client(self.hass, self.operator.irish_rail_consumer)
+        if self._perth is not None:
+            self._perth = None
+            release_shared_transperth_client(self.hass, self.operator.transperth_consumer)
         if self._ns is not None:
             self._ns = None
             release_shared_ns_client(self.hass, self.operator.ns_consumer)
@@ -440,6 +457,41 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         runs = self._irish_runs
         return {**self._irish.stats(), "drawn": len(runs.rows), "unplaced": runs.unplaced,
                 "skipped": dict(runs.skipped), "ghosts": runs.tracker.ghosts, "early": runs.tracker.early}
+
+    def _perth_zip(self) -> bytes | None:
+        """The shared Transperth client's copy of the PTA's zip, or None before it has one (blocking: the executor;
+        StaticTimetable asks again in SOURCE_WAIT_S)."""
+        client = self._perth
+        path = client.static_path() if client is not None else None
+        if path is None:
+            return None
+        with open(path, "rb") as fh:
+            return fh.read()
+
+    def _read_perth(self, static: dict[str, Any] | None) -> tuple[list, Any]:
+        """(the runs drawn this poll, the client's timetable version). Blocking: the executor. Reading the version also
+        starts the client's daily check when one is due."""
+        client = self._perth
+        client.static_path()
+        rows = self._perth_runs.poll(static, time.time())
+        return rows, client.static_version()
+
+    async def _fetch_perth(self):
+        """(rows, timetable version), or None on a failure. Keyless: only the exception's TYPE is logged."""
+        try:
+            return await self.hass.async_add_executor_job(self._read_perth, self._static.data)
+        except (TransperthError, OSError) as err:
+            _LOGGER.debug("%s timetable read failed: %s", self.operator.id, type(err).__name__)
+            return None
+
+    @property
+    def transperth_stats(self) -> dict[str, Any] | None:
+        """The shared Transperth client's counters and this entry's runs, for diagnostics; None for other sources."""
+        if self._perth is None or self._perth_runs is None:
+            return None
+        runs = self._perth_runs
+        return {**self._perth.stats(), "drawn": len(runs.rows), "unplaced": runs.unplaced,
+                "skipped": dict(runs.skipped)}
 
     def _read_trafikverket(self) -> tuple[list, dict[str, Any]]:
         """(the runs kept, the geometry) for this operator's claim. Blocking: the executor. Raises the client's
@@ -661,6 +713,17 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     if self._irish_version is not None:
                         self._static.request_refresh()
                     self._irish_version = version
+        elif op.source == SOURCE_TRANSPERTH:
+            # The runs drawn from the timetable stand in for a feed (perth_runs.py): parse(rows) reads them. A new copy
+            # of the PTA's zip is cut and distilled again at once, not at the day's refresh.
+            got = await self._fetch_perth()
+            feed = None
+            if got is not None:
+                feed, version = got
+                if version != self._perth_version:
+                    if self._perth_version is not None:
+                        self._static.request_refresh()
+                    self._perth_version = version
         else:
             try:
                 feed = await fetch_feed(self._session, op.positions_url, self._params)
@@ -756,7 +819,7 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._rail_check is not None:
             self._rail_check.set_shapes(static)
         if (op.source not in (SOURCE_DIGITRAFFIC, SOURCE_TRAFIKVERKET, SOURCE_IRISH_RAIL, SOURCE_NS,
-                              SOURCE_TRANSPORT_VIC)
+                              SOURCE_TRANSPORT_VIC, SOURCE_TRANSPERTH)
                 and feed.header.HasField("timestamp")):
             self.feed_timestamp = int(feed.header.timestamp)
         # A fix older than the operator's limit is refused before Fleet sees it
@@ -811,5 +874,8 @@ class CommuterRailCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._irish_runs is not None:
             # Irish Rail: every train a no-fix estimate along its trip's shape, last of all (D3d, irish_runs.py).
             result["estimated"] = self._irish_runs.publish(result)
+        if self._perth_runs is not None:
+            # Perth: every train a no-fix estimate along its trip's shape, last of all (D3d, perth_runs.py).
+            result["estimated"] = self._perth_runs.publish(result)
         self._last_good = result
         return result

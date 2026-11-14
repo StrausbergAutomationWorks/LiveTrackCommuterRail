@@ -58,7 +58,7 @@ from .const import (
 from .coordinator import AuthError, fetch_feed
 from .operators import OPERATORS, Operator, operators_in, regions_in_use
 from .operators.base import (SOURCE_DIGITRAFFIC, SOURCE_ENTUR, SOURCE_IRISH_RAIL, SOURCE_NS, SOURCE_TFNSW,
-                             SOURCE_TRAFIKVERKET, SOURCE_TRANSPORT_VIC)
+                             SOURCE_TRAFIKVERKET, SOURCE_TRANSPERTH, SOURCE_TRANSPORT_VIC)
 from .operators.nsw_trainlink import check_key as tfnsw_check_key
 from .operators.vline import check_key as vic_check_key
 from .shared_irish_rail import get_shared_irish_rail_client, release_shared_irish_rail_client
@@ -120,10 +120,24 @@ async def _check_irish_rail(hass, op: Operator) -> str | None:
     return None
 
 
+async def _check_transperth(hass, op: Operator) -> str | None:
+    """One HEAD of the PTA's timetable zip (keyless; Perth publishes no realtime, and the zip is 27 MB, so never a
+    GET here): None on HTTP 200, else cannot_connect. The shared client downloads it once the entry loads."""
+    try:
+        async with async_get_clientsession(hass).head(
+            op.static_url, headers={"User-Agent": USER_AGENT}, allow_redirects=True,
+            timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)) as resp:
+            return None if resp.status == 200 else "cannot_connect"
+    except (aiohttp.ClientError, TimeoutError):
+        return "cannot_connect"
+
+
 async def _check_key(hass, op: Operator, key: str) -> str | None:
     """None when the operator accepts the key, else an error code."""
     if op.source == SOURCE_IRISH_RAIL:
         return await _check_irish_rail(hass, op)
+    if op.source == SOURCE_TRANSPERTH:
+        return await _check_transperth(hass, op)
     if op.source == SOURCE_DIGITRAFFIC:
         return await _check_digitraffic(hass, op)
     if op.source == SOURCE_ENTUR:

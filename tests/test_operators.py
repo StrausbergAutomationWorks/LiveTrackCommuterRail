@@ -208,7 +208,8 @@ class RegistryTests(unittest.TestCase):
                                               "renfe_cantabria", "renfe_zaragoza",
                                               "vy", "go_ahead_norge", "flytoget",
                                               "sl_pendeltag", "vasttagen", "arlanda_express",
-                                              "irish_rail", "ns", "nsw_trainlink", "vline", "adelaide_metro"})
+                                              "irish_rail", "ns", "nsw_trainlink", "vline", "adelaide_metro",
+                                              "perth"})
 
     def test_every_region_has_a_label_and_the_list_is_sorted(self):
         regions = ops.regions_in_use()
@@ -216,7 +217,7 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(set(regions), {"US-IL", "US-IN", "US-WI", "AU-NSW", "AU-QLD", "FI",
                                         "ES-AN", "ES-AR", "ES-AS", "ES-CB", "ES-CL", "ES-CT",
                                         "ES-GA", "ES-MC", "ES-MD", "ES-PV", "ES-VC", "NO", "SE", "IE", "NL",
-                                        "AU-VIC", "AU-SA"})
+                                        "AU-VIC", "AU-SA", "AU-WA"})
 
     def test_operators_in_region(self):
         self.assertEqual([o.id for o in ops.operators_in("US-IL")], ["metra", "nictd"])

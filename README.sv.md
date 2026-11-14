@@ -42,7 +42,7 @@ spåret tills en riktig position kommer tillbaka.
 Metra och South Shore Line (Chicago), Renfe Cercanías och Rodalies (Spanien),
 VR lähijunat (Finland), Vy, Go-Ahead Norge och Flytoget (Norge), SL Pendeltåg,
 Västtågen och Arlanda Express (Sverige), NS Sprinter (Nederländerna), Irish
-Rail (Irland), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line och Adelaide Metro (Australien). Nycklar och villkor: [tabellen i den engelska
+Rail (Irland), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line, Adelaide Metro och Perths tåg (Australien). Nycklar och villkor: [tabellen i den engelska
 README-filen](README.md#supported-railroads).
 
 ## En del av Live Track

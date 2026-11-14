@@ -138,9 +138,9 @@ class Registry(unittest.TestCase):
         self.assertIn("not sponsored", op.attribution)
 
     def test_the_manifest_asks_for_0_2_38_or_later(self):
-        # 0.2.39 since 2026-11-13 (Adelaide, SSOT 19); V/Line needs 0.2.38.
+        # 0.2.40 since 2026-11-13: saw_livetrack.transperth (Perth, SSOT 20). 0.2.39 from 2026-11-13 (Adelaide, SSOT 19); V/Line needs 0.2.38.
         m = json.loads((HERE / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("saw-livetrack[gtfs]>=0.2.39,<0.3", m["requirements"])
+        self.assertIn("saw-livetrack[gtfs]>=0.2.40,<0.3", m["requirements"])
 
 
 class Cut(unittest.TestCase):
@@ -371,7 +371,7 @@ class CoordinatorWiring(unittest.TestCase):
         self.assertIn("whole = client.feed_newest(consumer)", src)
         self.assertIn("VLineTimetable(self._static_data()), whole)", src)
         self.assertIn("release_shared_transport_vic_client(self.hass, self.operator.transport_vic_consumer)", src)
-        self.assertIn("SOURCE_TRANSPORT_VIC)\n                and feed.header.HasField", src)
+        self.assertIn("SOURCE_TRANSPORT_VIC, SOURCE_TRANSPERTH)\n                and feed.header.HasField", src)
 
 
 if __name__ == "__main__":

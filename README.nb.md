@@ -35,7 +35,7 @@ distribuert av Entur. Ingen nøkkel trengs.
 Metra og South Shore Line (Chicago), Renfe Cercanías og Rodalies (Spania),
 VR lähijunat (Finland), Vy, Go-Ahead Norge og Flytoget (Norge), SL Pendeltåg,
 Västtågen og Arlanda Express (Sverige), NS Sprinter (Nederland), Irish Rail
-(Irland), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line og Adelaide Metro (Australia). Nøkler og vilkår: [tabellen i den engelske
+(Irland), Queensland Rail Citytrain, NSW TrainLink Intercity, V/Line, Adelaide Metro og Perths tog (Australia). Nøkler og vilkår: [tabellen i den engelske
 README-filen](README.md#supported-railroads).
 
 ## En del av Live Track

@@ -58,6 +58,10 @@ SOURCE_TRANSPORT_VIC = "transport_vic"
 # keyless) hands over the positions and trip updates already cut to route_type 2; parse(feed) reads the positions as for
 # GTFS_RT. Its timetable is the client's copy, read again when its version.txt changes.
 SOURCE_ADELAIDE_METRO = "adelaide_metro"
+# Transperth (Perth, SSOT 20): NO realtime. The shared Transperth client (saw_livetrack.transperth, one copy of the PTA's
+# timetable per Home Assistant, keyless) keeps the zip on disk; perth_runs.py draws every run from it, and parse(rows)
+# reads those, as Irish Rail's.
+SOURCE_TRANSPERTH = "transperth"
 
 
 @dataclass(frozen=True)
@@ -152,6 +156,9 @@ class Operator:
     # Adelaide Metro: the consumer this operator registers with the shared client ("commuter";
     # saw_livetrack.adelaide_metro.CONSUMERS).
     adelaide_metro_consumer: str | None = None
+    # Transperth: the consumer this operator registers with the shared client ("commuter";
+    # saw_livetrack.transperth.CONSUMERS).
+    transperth_consumer: str | None = None
     # TfNSW: which of the shared client's timetables this operator's static is distilled from (saw_livetrack.tfnsw
     # NSWTRAINS or SYDNEYTRAINS). None: nswtrains.
     tfnsw_timetable: str | None = None
@@ -225,6 +232,7 @@ REGIONS: dict[str, str] = {
     "AU-QLD": "Australia — Queensland",
     "AU-SA": "Australia — South Australia",
     "AU-VIC": "Australia — Victoria",
+    "AU-WA": "Australia — Western Australia",
     "FI": "Finland",
     "IE": "Ireland",
     "ES-AN": "Spain — Andalusia",
