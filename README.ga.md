@@ -48,10 +48,10 @@ agus cárta léarscáile amháin
 ([LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard)),
 mar sin ní chuireann modúl eile iarratais bhreise ar fhoinse roinnte. Eisithe:
 Live Track Commuter Rail,
-[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft)
-agus [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT).
-Á bhforbairt: Live Track Intercity Rail, Live Track Ships agus Live Track
-Weather.
+[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft),
+[Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT)
+agus [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail).
+Á bhforbairt: Live Track Ships agus Live Track Weather.
 
 ## Riachtanais
 

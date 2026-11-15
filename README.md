@@ -38,7 +38,7 @@ the modules you want; each works on its own.
 | **Live Track Commuter Rail** (this one) | commuter trains | released |
 | [Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft) | aircraft around your home, with routes and type icons (ADS-B) | released |
 | [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT) | immigration and federal law-enforcement aircraft and vessels | released |
-| Live Track Intercity Rail | intercity and long-distance trains in North America, Europe and Australia (Amtrak, Brightline, VIA Rail, VR and more) | in development |
+| [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail) | intercity and long-distance trains in North America, Europe and Australia (Amtrak, Brightline, VIA Rail, VR and more) | released |
 | Live Track Ships | ships and boats (AIS) | in development |
 | Live Track Weather | weather warnings and tropical cyclones | in development |
 

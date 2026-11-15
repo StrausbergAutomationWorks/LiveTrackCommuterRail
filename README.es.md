@@ -46,9 +46,10 @@ biblioteca de Python ([saw-livetrack](https://github.com/StrausbergAutomationWor
 y una tarjeta de mapa ([LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard)),
 así que instalar otro módulo no añade peticiones a una fuente compartida.
 Publicados: Live Track Commuter Rail,
-[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft)
-y [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT).
-En desarrollo: Live Track Intercity Rail, Live Track Ships y Live Track Weather.
+[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft),
+[Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT)
+y [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail).
+En desarrollo: Live Track Ships y Live Track Weather.
 
 ## Requisitos
 

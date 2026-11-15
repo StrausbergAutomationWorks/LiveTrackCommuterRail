@@ -53,10 +53,10 @@ Python-bibliotek ([saw-livetrack](https://github.com/StrausbergAutomationWorks/L
 och ett kartkort ([LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard)),
 så en modul till lägger inte till frågor mot en delad källa som Trafikverket.
 Släppta: Live Track Commuter Rail,
-[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft)
-och [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT).
-Under utveckling: Live Track Intercity Rail, Live Track Ships och Live Track
-Weather.
+[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft),
+[Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT)
+och [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail).
+Under utveckling: Live Track Ships och Live Track Weather.
 
 ## Krav
 

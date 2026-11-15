@@ -42,10 +42,10 @@ Python-bibliotheek ([saw-livetrack](https://github.com/StrausbergAutomationWorks
 en één dashboardkaart voor de kaart ([LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard)),
 dus een extra module stuurt geen extra verzoeken naar een gedeelde bron zoals
 NS. Uitgebracht: Live Track Commuter Rail,
-[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft)
-en [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT).
-In ontwikkeling: Live Track Intercity Rail, Live Track Ships en Live Track
-Weather.
+[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft),
+[Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT)
+en [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail).
+In ontwikkeling: Live Track Ships en Live Track Weather.
 
 ## Vereisten
 

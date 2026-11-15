@@ -43,9 +43,10 @@ Python-kirjaston ([saw-livetrack](https://github.com/StrausbergAutomationWorks/L
 ja yhden karttakortin ([LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard)),
 joten uusi moduuli ei lisää kyselyjä jaettuun lähteeseen, kuten Digitrafficiin.
 Julkaistu: Live Track Commuter Rail,
-[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft)
-ja [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT).
-Kehitteillä: Live Track Intercity Rail, Live Track Ships ja Live Track Weather.
+[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft),
+[Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT)
+ja [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail).
+Kehitteillä: Live Track Ships ja Live Track Weather.
 
 ## Vaatimukset
 

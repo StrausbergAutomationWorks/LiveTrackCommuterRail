@@ -46,10 +46,11 @@ Python-bibliotek ([saw-livetrack](https://github.com/StrausbergAutomationWorks/L
 og ett kartkort ([LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard)),
 så en modul til gir ikke flere forespørsler mot en delt kilde som Entur.
 Utgitt: Live Track Commuter Rail,
-[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft)
-og [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT).
-Under utvikling: Live Track Intercity Rail (som tegner Norges F-, RE-, RX- og
-R-linjer), Live Track Ships og Live Track Weather.
+[Live Track Aircraft](https://github.com/StrausbergAutomationWorks/LiveTrackAircraft),
+[Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT)
+og [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail)
+(som tegner Norges F-, RE-, RX- og R-linjer).
+Under utvikling: Live Track Ships og Live Track Weather.
 
 ## Krav
 
