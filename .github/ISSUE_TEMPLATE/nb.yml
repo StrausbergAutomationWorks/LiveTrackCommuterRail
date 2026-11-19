@@ -1,0 +1,66 @@
+name: "Norsk bokmål: forslag, feil eller hjelp"
+description: "Foreslå noe, meld fra om en feil, eller legg til noe med vår hjelp. Du trenger ikke kunne programmere."
+labels: ["lang: nb"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Takk. Svar på det du kan, og la resten stå tomt. Du trenger ikke å vite noe om programmering. Du kan skrive på norsk eller på et hvilket som helst annet språk.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "Hva gjelder det?"
+      options:
+        - "Et forslag: et land, en datakilde, en funksjon"
+        - "En feil: noe er galt, mangler eller er vanskelig å forstå"
+        - "Jeg vil gjerne legge til noe med deres hjelp"
+        - "Noe annet"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: "Fortell oss om det"
+      description: "Hva du ønsker deg, hva som skjedde, eller hva du har i tankene."
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: "Hvor i verden?"
+      description: "Et land, en region eller en by, hvis det har betydning."
+  - type: textarea
+    id: source
+    attributes:
+      label: "Hvor publiseres dataene? (valgfritt)"
+      description: "En lenke til en side med åpne data, en offentlig datastrøm eller en tjenestes nettsted, hvis du kjenner til en."
+  - type: input
+    id: ha_version
+    attributes:
+      label: "Home Assistant-versjon (ved en feil)"
+      description: "Står under Innstillinger → Om."
+  - type: input
+    id: version
+    attributes:
+      label: "Versjon av denne integrasjonen (ved en feil)"
+      description: "Marketplace (HACS) viser den ved siden av navnet."
+  - type: input
+    id: language
+    attributes:
+      label: "Språket i Home Assistant"
+      description: "Bare hvis feilen gjelder ordlyden eller en oversettelse."
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Feilmeldinger (valgfritt)"
+      description: "Innstillinger → System → Logger. Kopier linjene som nevner denne integrasjonen. La feltet stå tomt hvis du er usikker."
+      render: text
+  - type: dropdown
+    id: experience
+    attributes:
+      label: "Har du gjort noe lignende før? (valgfritt)"
+      description: "Da vet vi hvor mye vi skal forklare. Alle svar er velkomne."
+      options:
+        - "Nei, det er første gang"
+        - "Litt"
+        - "Ja"

@@ -1,0 +1,66 @@
+name: "Suomi: ehdotus, ongelma tai apu"
+description: "Ehdota jotain, ilmoita ongelmasta tai lisää jotain meidän avullamme. Ohjelmointitaitoa ei tarvita."
+labels: ["lang: fi"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Kiitos. Vastaa siihen, mihin osaat, ja jätä loput tyhjiksi. Sinun ei tarvitse tietää ohjelmoinnista mitään. Voit kirjoittaa suomeksi tai millä tahansa muulla kielellä.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "Mitä asia koskee?"
+      options:
+        - "Ehdotus: maa, tietolähde tai ominaisuus"
+        - "Ongelma: jokin on väärin, puuttuu tai on vaikea ymmärtää"
+        - "Haluaisin lisätä jotain teidän avullanne"
+        - "Jotain muuta"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: "Kerro meille"
+      description: "Mitä haluaisit, mitä tapahtui tai mitä sinulla on mielessä."
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: "Missä päin maailmaa?"
+      description: "Maa, alue tai kaupunki, jos sillä on merkitystä."
+  - type: textarea
+    id: source
+    attributes:
+      label: "Missä tiedot julkaistaan? (valinnainen)"
+      description: "Linkki avoimen datan sivulle, julkiseen syötteeseen tai palvelun verkkosivulle, jos tiedät sellaisen."
+  - type: input
+    id: ha_version
+    attributes:
+      label: "Home Assistantin versio (ongelmaa varten)"
+      description: "Näet sen kohdasta Asetukset → Tietoja."
+  - type: input
+    id: version
+    attributes:
+      label: "Tämän integraation versio (ongelmaa varten)"
+      description: "Markkinapaikka (HACS) näyttää sen nimen vieressä."
+  - type: input
+    id: language
+    attributes:
+      label: "Home Assistantisi kieli"
+      description: "Vain jos ongelma koskee sanamuotoa tai käännöstä."
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Virheilmoitukset (valinnainen)"
+      description: "Asetukset → Järjestelmä → Lokit. Kopioi rivit, joissa tämä integraatio mainitaan. Jätä tyhjäksi, jos et ole varma."
+      render: text
+  - type: dropdown
+    id: experience
+    attributes:
+      label: "Oletko tehnyt jotain tällaista aiemmin? (valinnainen)"
+      description: "Niin tiedämme, kuinka paljon selittää. Kaikki vastaukset ovat tervetulleita."
+      options:
+        - "En, tämä on ensimmäinen kerta"
+        - "Vähän"
+        - "Kyllä"

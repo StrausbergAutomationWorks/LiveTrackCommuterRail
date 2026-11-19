@@ -1,0 +1,66 @@
+name: "Gaeilge: moladh, fadhb nó cabhair"
+description: "Mol rud éigin, tuairiscigh fadhb, nó cuir rud éigin leis le cabhair uainn. Níl aon ríomhchlárú ag teastáil."
+labels: ["lang: ga"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Go raibh maith agat. Freagair an méid is féidir leat agus fág an chuid eile folamh. Ní gá duit aon rud a bheith ar eolas agat faoi ríomhchlárú. Is féidir leat scríobh i nGaeilge nó in aon teanga eile.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "Cad faoi a bhfuil sé seo?"
+      options:
+        - "Moladh: tír, foinse sonraí, gné"
+        - "Fadhb: tá rud éigin mícheart, ar iarraidh nó deacair a thuiscint"
+        - "Ba mhaith liom rud éigin a chur leis, le bhur gcabhair"
+        - "Rud éigin eile"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: "Inis dúinn faoi"
+      description: "Cad ba mhaith leat, cad a tharla, nó cad atá ar intinn agat."
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: "Cén áit ar domhan?"
+      description: "Tír, réigiún nó cathair, más ábhartha."
+  - type: textarea
+    id: source
+    attributes:
+      label: "Cá bhfoilsítear na sonraí? (roghnach)"
+      description: "Nasc chuig leathanach sonraí oscailte, foinse phoiblí nó suíomh gréasáin seirbhíse, má tá ceann ar eolas agat."
+  - type: input
+    id: ha_version
+    attributes:
+      label: "Leagan Home Assistant (le haghaidh fadhbanna)"
+      description: "Taispeántar é faoi Socruithe → Maidir."
+  - type: input
+    id: version
+    attributes:
+      label: "Leagan an chomhtháthaithe seo (le haghaidh fadhbanna)"
+      description: "Taispeánann Margadh (HACS) é in aice leis an ainm."
+  - type: input
+    id: language
+    attributes:
+      label: "Teanga do Home Assistant"
+      description: "Ach amháin más é an fhoclaíocht nó aistriúchán an fhadhb."
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Teachtaireachtaí earráide (roghnach)"
+      description: "Socruithe → Córas → Loganna. Cóipeáil na línte a luann an comhtháthú seo. Fág folamh é mura bhfuil tú cinnte."
+      render: text
+  - type: dropdown
+    id: experience
+    attributes:
+      label: "An ndearna tú a leithéid roimhe seo? (roghnach)"
+      description: "Ionas go mbeidh a fhios againn cé mhéad le míniú. Fáiltear roimh gach freagra."
+      options:
+        - "Ní dhearna, seo an chéad uair"
+        - "Beagán"
+        - "Rinne"

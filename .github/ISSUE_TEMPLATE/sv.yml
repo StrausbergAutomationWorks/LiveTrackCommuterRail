@@ -1,0 +1,66 @@
+name: "Svenska: förslag, problem eller hjälp"
+description: "Föreslå något, rapportera ett problem eller lägg till något med vår hjälp. Du behöver inte kunna programmera."
+labels: ["lang: sv"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tack. Svara på det du kan och lämna resten tomt. Du behöver inte kunna något om programmering. Du får skriva på svenska eller på vilket annat språk som helst.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "Vad gäller det?"
+      options:
+        - "Ett förslag: ett land, en datakälla, en funktion"
+        - "Ett problem: något är fel, saknas eller är svårt att förstå"
+        - "Jag vill lägga till något med er hjälp"
+        - "Något annat"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: "Berätta för oss"
+      description: "Vad du vill ha, vad som hände eller vad du har i tankarna."
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: "Var i världen?"
+      description: "Ett land, en region eller en stad, om det spelar roll."
+  - type: textarea
+    id: source
+    attributes:
+      label: "Var publiceras data? (valfritt)"
+      description: "En länk till en sida med öppna data, ett öppet flöde eller en tjänsts webbplats, om du känner till någon."
+  - type: input
+    id: ha_version
+    attributes:
+      label: "Home Assistant-version (vid ett problem)"
+      description: "Finns under Inställningar → Om."
+  - type: input
+    id: version
+    attributes:
+      label: "Version av den här integrationen (vid ett problem)"
+      description: "Marknadsplatsen (HACS) visar den bredvid namnet."
+  - type: input
+    id: language
+    attributes:
+      label: "Språket i din Home Assistant"
+      description: "Bara om problemet gäller formuleringen eller en översättning."
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Felmeddelanden (valfritt)"
+      description: "Inställningar → System → Loggar. Kopiera raderna som nämner den här integrationen. Lämna tomt om du är osäker."
+      render: text
+  - type: dropdown
+    id: experience
+    attributes:
+      label: "Har du gjort något liknande förut? (valfritt)"
+      description: "Så att vi vet hur mycket vi ska förklara. Alla svar är välkomna."
+      options:
+        - "Nej, det är första gången"
+        - "Lite"
+        - "Ja"
