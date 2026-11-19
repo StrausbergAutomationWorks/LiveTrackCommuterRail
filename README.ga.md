@@ -843,3 +843,9 @@ lähijunat · HSL · VR · pendeltåg · Vy · Flytoget · NS · Sprinter · Que
 Rail · Translink · NSW TrainLink · V/Line · Adelaide Metro · traenacha Perth ·
 GTFS-Realtime · geo_location · cárta léarscáile · Lovelace · HACS · Margadh ·
 Live Track · LiveTrack · StrausbergAutomationWorks
+
+---
+
+**Aitheantas.** Aithníonn StrausbergAutomationWorks pobail dhúchasacha gach tíre
+agus gach uisce ar an léarscáil seo, ar fud an domhain, agus tugann sé ómós dá
+Seanóirí, san am a caitheadh agus inniu.

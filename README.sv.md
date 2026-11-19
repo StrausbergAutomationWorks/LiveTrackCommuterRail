@@ -806,3 +806,9 @@ Sprinter · Renfe Cercanías · Rodalies · Irish Rail · Metra · South Shore
 Line · Queensland Rail · Translink · NSW TrainLink · V/Line · Adelaide Metro ·
 Perths tåg · GTFS-Realtime · geo_location · kartkort · Lovelace · HACS ·
 Marknadsplatsen · Live Track · LiveTrack · StrausbergAutomationWorks
+
+---
+
+**Erkännande.** StrausbergAutomationWorks erkänner urfolken i alla de länder och
+vatten som den här kartan täcker, över hela världen, och visar sin respekt för
+deras äldste, förr och nu.

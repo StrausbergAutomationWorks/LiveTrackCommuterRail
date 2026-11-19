@@ -822,3 +822,9 @@ NS · Sprinter · Renfe Cercanías · Rodalies · Irish Rail · Metra · South S
 Line · Queensland Rail · Translink · NSW TrainLink · V/Line · Adelaide Metro ·
 Perthin junat · GTFS-Realtime · geo_location · karttakortti · Lovelace · HACS ·
 Markkinapaikka · Live Track · LiveTrack · StrausbergAutomationWorks
+
+---
+
+**Kunnioitus.** StrausbergAutomationWorks tunnustaa kaikkien tämän kartan
+kattamien maiden ja vesien alkuperäiskansat kaikkialla maailmassa ja osoittaa
+kunnioitusta niiden vanhimmille, menneille ja nykyisille.

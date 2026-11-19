@@ -831,3 +831,9 @@ Irish Rail · Queensland Rail · Translink · NSW TrainLink · V/Line · Adelaid
 Metro · trenes de Perth · GTFS-Realtime · geo_location · tarjeta de mapa ·
 Lovelace · HACS · Marketplace · Live Track · LiveTrack ·
 StrausbergAutomationWorks
+
+---
+
+**Reconocimiento.** StrausbergAutomationWorks reconoce a los pueblos indígenas
+de todas las tierras y aguas de este mapa, en todo el mundo, y presenta sus
+respetos a sus Mayores del pasado y del presente.

@@ -787,3 +787,9 @@ Flytoget · tog i sanntid · NS · Sprinter · treinen live · Irish Rail ·
 traenacha beo · Queensland Rail · Translink · NSW TrainLink · V/Line ·
 Adelaide Metro · Perth trains · geo_location · map card · Lovelace · HACS ·
 Marketplace · Live Track · LiveTrack · StrausbergAutomationWorks
+
+---
+
+**Acknowledgement.** StrausbergAutomationWorks acknowledges the Indigenous
+peoples of every land and water on this map, all over the world, and pays its
+respect to their Elders, past and present.

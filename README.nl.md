@@ -837,3 +837,9 @@ lähijunat · HSL · VR · pendeltåg · Vy · Flytoget · Irish Rail · Queensl
 Rail · Translink · NSW TrainLink · V/Line · Adelaide Metro · treinen Perth ·
 geo_location · map card · Lovelace · HACS · Marktplaats · Live Track ·
 LiveTrack · StrausbergAutomationWorks
+
+---
+
+**Erkenning.** StrausbergAutomationWorks erkent de inheemse volken van alle
+landen en wateren op deze kaart, overal ter wereld, en betuigt zijn respect aan
+hun Elders, van vroeger en nu.

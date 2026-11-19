@@ -803,3 +803,9 @@ Rail · Metra · South Shore Line · Queensland Rail · Translink · NSW
 TrainLink · V/Line · Adelaide Metro · Perths tog · GTFS-Realtime ·
 geo_location · kartkort · Lovelace · HACS · Marketplace · Live Track ·
 LiveTrack · StrausbergAutomationWorks
+
+---
+
+**Anerkjennelse.** StrausbergAutomationWorks anerkjenner urfolkene i alle land
+og farvann som dette kartet dekker, over hele verden, og viser respekt for deres
+eldste, før og nå.
