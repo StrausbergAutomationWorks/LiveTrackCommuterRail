@@ -266,7 +266,8 @@ class OperatorTests(unittest.TestCase):
     def test_manifest_asks_for_the_library_with_perth(self):
         m = json.loads((pathlib.Path(__file__).resolve().parents[1] / "custom_components" / "live_track_commuter_rail"
                         / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("saw-livetrack[gtfs]>=0.2.40,<0.3", m["requirements"])
+        # 0.2.42 since 2026-11-20: Live Track writes only its own map-card resource rows (hacs/default review).
+        self.assertIn("saw-livetrack[gtfs]>=0.2.42,<0.3", m["requirements"])
 
     def test_every_translation_names_the_region(self):
         root = pathlib.Path(__file__).resolve().parents[1] / "custom_components" / "live_track_commuter_rail"

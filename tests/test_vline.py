@@ -138,9 +138,9 @@ class Registry(unittest.TestCase):
         self.assertIn("not sponsored", op.attribution)
 
     def test_the_manifest_asks_for_0_2_38_or_later(self):
-        # 0.2.40 since 2026-11-13: saw_livetrack.transperth (Perth, SSOT 20). 0.2.39 from 2026-11-13 (Adelaide, SSOT 19); V/Line needs 0.2.38.
+        # 0.2.42 since 2026-11-20: Live Track writes only its own map-card resource rows (hacs/default review). 0.2.40 from 2026-11-13: saw_livetrack.transperth (Perth, SSOT 20). 0.2.39 from 2026-11-13 (Adelaide, SSOT 19); V/Line needs 0.2.38.
         m = json.loads((HERE / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("saw-livetrack[gtfs]>=0.2.40,<0.3", m["requirements"])
+        self.assertIn("saw-livetrack[gtfs]>=0.2.42,<0.3", m["requirements"])
 
 
 class Cut(unittest.TestCase):
