@@ -317,10 +317,31 @@ filter:
     - state: unavailable
 ```
 
-The markers need [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
+This form needs [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
 from the Marketplace. With other Live Track modules installed, add one more
 `- domain: geo_location` filter for each of their sources
 (`live_track_intercity_rail`, `live_track_aircraft` and so on).
+
+**Without auto-entities:** LiveTrackMapCard can choose what it shows by
+itself, with `entity_filter`. Paste this instead; nothing more to install:
+
+```yaml
+type: custom:live-track-map-card
+entity_filter:
+  include:
+    - domain: geo_location
+      attributes:
+        source: live_track_commuter_rail
+      options:
+        display: attribute
+        attribute: marker_label
+        position_transition: auto
+  exclude:
+    - state: unavailable
+```
+
+Other Live Track modules go in `entity_filter` the same way: one more
+`- domain: geo_location` rule for each source.
 
 **On the map:**
 

@@ -328,10 +328,31 @@ filter:
     - state: unavailable
 ```
 
-Markørene trenger [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
+Denne formen trenger [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
 fra Marketplace. Har du andre Live Track-moduler installert, legger du til ett
 `- domain: geo_location`-filter til for hver av kildene deres
 (`live_track_intercity_rail`, `live_track_aircraft` og så videre).
+
+**Uten auto-entities:** LiveTrackMapCard kan selv velge hva det viser, med
+`entity_filter`. Lim inn dette i stedet; ingenting mer må installeres:
+
+```yaml
+type: custom:live-track-map-card
+entity_filter:
+  include:
+    - domain: geo_location
+      attributes:
+        source: live_track_commuter_rail
+      options:
+        display: attribute
+        attribute: marker_label
+        position_transition: auto
+  exclude:
+    - state: unavailable
+```
+
+Andre Live Track-moduler legges i `entity_filter` på samme måte: én regel
+`- domain: geo_location` til for hver kilde.
 
 **På kartet:**
 
