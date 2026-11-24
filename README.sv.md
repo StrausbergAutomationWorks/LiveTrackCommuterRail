@@ -18,9 +18,8 @@ nästa station. Varje bana läggs till för sig, från bananas egna öppna data.
 > Saknas din? [Föreslå den](#hjälp-den-att-växa), eller lägg till den själv:
 > vi hjälper dig.
 
-**Status: 0.1.4, utgiven.** Läggs till i Marknadsplatsen via sin länk
-([nedan](#installera-den-steg-för-steg)); den finns ännu inte i
-Marknadsplatsens katalog.
+**Status: 0.1.6, utgiven.** I Marknadsplatsens katalog ([installera den
+nedan](#installera-den-steg-för-steg)).
 
 Originalarbete av StrausbergAutomationWorks. Inte knuten till, eller godkänd
 av, Metra, Northern Indiana Commuter Transportation District (NICTD), ETA
@@ -168,18 +167,16 @@ Allt är gratis och öppen källkod. Inget hålls tillbaka för sponsorer.
 
 ### Från Marknadsplatsen (rekommenderas)
 
-Live Track Commuter Rail finns ännu inte i Marknadsplatsens katalog. Lägg
-till den via sin länk:
-
 1. Öppna **Inställningar → Marknadsplatsen** (HACS) i Home Assistant.
-2. Välj **Lägg till från länk** (eller menyn med tre punkter → **Anpassade
-   förråd**).
-3. Ange `StrausbergAutomationWorks/LiveTrackCommuterRail`. Om du får frågan om
-   typ, välj **Integration**.
-4. Leta upp **Live Track Commuter Rail** i listan och välj **Ladda ner** eller
-   **Installera**.
-5. **Starta om Home Assistant**: **Inställningar → System → Lagningar**
+2. Sök efter **Live Track Commuter Rail** och öppna den.
+3. Välj **Ladda ner** (eller **Installera**).
+4. **Starta om Home Assistant**: **Inställningar → System → Lagningar**
    erbjuder omstarten, eller använd **Inställningar → System → Starta om**.
+
+Om sökningen inte hittar den, lägg till den via dess länk: välj **Lägg till från
+länk** (eller menyn med tre punkter → **Anpassade förråd**), ange
+`StrausbergAutomationWorks/LiveTrackCommuterRail`, välj **Integration** om du
+får frågan om typ och fortsätt sedan från steg 3.
 
 Sedan erbjuder Marknadsplatsen varje ny version som en uppdatering.
 
@@ -392,8 +389,14 @@ raden under **Inställningar → Kontrollpaneler → Resurser**.
 
 **För att i stället installera kortet för hand** följer du stegen i
 [kortets README](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard#live-track).
-En rad som du själv har skapat för en kopia under `/local/` pekas om till den
-här modulens kopia bara när den kopian är en nyare version.
+En rad som du själv har skapat för en kopia under `/local/` eller på någon annan
+adress ändras eller tas aldrig bort. Så länge den läser in kortet överlåter
+varje Live Track-modul kortet åt den, även när en modul har en nyare version,
+och ingenting under **Lagningar** talar om det. För att gå tillbaka till
+modulens kopia tar du bort din rad under **Inställningar → Kontrollpaneler →
+Resurser** och startar om Home Assistant. Om du tar bort filen för din kopia, ta
+bort dess rad också: så länge en rad vars fil är borta står kvar lägger modulen
+inte till någon egen rad.
 
 Varje annat kartkort som visar `geo_location`-entiteter visar också tågen,
 som vanliga markörer.

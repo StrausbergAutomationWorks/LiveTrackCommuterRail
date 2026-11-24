@@ -18,9 +18,8 @@ next stop. Each railroad is added on its own, from its own open data.
 > countries. Is yours missing? [Suggest it](#help-it-grow), or add it
 > yourself: we will help you do it.
 
-**Status: 0.1.4, released.** Added to the Marketplace by link
-([below](#install-it-step-by-step)); it is not in the Marketplace's catalog
-yet.
+**Status: 0.1.6, released.** In the Marketplace's catalog ([install it
+below](#install-it-step-by-step)).
 
 Original work by StrausbergAutomationWorks. Not affiliated with, or endorsed
 by, Metra, the Northern Indiana Commuter Transportation District (NICTD),
@@ -165,17 +164,16 @@ Everything is free and open source. Nothing is held back for sponsors.
 
 ### From the Marketplace (recommended)
 
-Live Track Commuter Rail is not in the Marketplace's catalog yet. Add it by
-its link:
-
 1. In Home Assistant, open **Settings → Marketplace** (HACS).
-2. Choose **Add from link** (or the three-dot menu → **Custom repositories**).
-3. Enter `StrausbergAutomationWorks/LiveTrackCommuterRail`. If asked for the
-   type, choose **Integration**.
-4. Find **Live Track Commuter Rail** in the list and choose **Download** or
-   **Install**.
-5. **Restart Home Assistant**: **Settings → System → Repairs** offers the
+2. Search for **Live Track Commuter Rail** and open it.
+3. Choose **Download** (or **Install**).
+4. **Restart Home Assistant**: **Settings → System → Repairs** offers the
    restart, or use **Settings → System → Restart**.
+
+If the search doesn't find it, add it by its link: choose **Add from link** (or
+the three-dot menu → **Custom repositories**), enter
+`StrausbergAutomationWorks/LiveTrackCommuterRail`, choose **Integration** if
+asked for the type, then carry on from step 3.
 
 The Marketplace then offers each new release as an update.
 
@@ -378,8 +376,13 @@ Resources**.
 
 **To install the card by hand instead**, follow the steps in the
 [card's README](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard#live-track).
-A row you made yourself for a copy under `/local/` is pointed at this
-module's copy only when this module's copy is a newer release.
+A row you made yourself, for a copy under `/local/` or at any other address, is
+never changed or removed. While it loads the card, every Live Track module
+leaves the card to it, even when a module carries a newer release, and nothing
+in **Repairs** says so. To go back to the module's copy, remove your row in
+**Settings → Dashboards → Resources** and restart Home Assistant. If you delete
+your copy's file, remove its row too: while a row whose file is gone stays, the
+module adds no row of its own.
 
 Any other map card that shows `geo_location` entities shows the trains too,
 as plain markers.

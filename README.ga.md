@@ -19,8 +19,8 @@ leith, óna shonraí oscailte féin.
 > iarnród agus tíortha leis. An bhfuil d'iarnród féin in easnamh?
 > [Mol é](#cuidigh-leis-fás), nó cuir leis tú féin é: cabhróimid leat.
 
-**Stádas: 0.1.4, eisithe.** Cuirtear leis an Margadh é trína nasc
-([thíos](#suiteáil-é-céim-ar-chéim)); níl sé i gcatalóg an Mhargaidh fós.
+**Stádas: 0.1.6, eisithe.** I gcatalóg an Mhargaidh ([suiteáil thíos
+é](#suiteáil-é-céim-ar-chéim)).
 
 Saothar bunaidh le StrausbergAutomationWorks. Níl baint aige le Metra,
 Northern Indiana Commuter Transportation District (NICTD), ETA SPOT, Renfe,
@@ -172,18 +172,16 @@ lucht urraíochta.
 
 ### Ón Margadh (molta)
 
-Níl Live Track Commuter Rail i gcatalóg an Mhargaidh fós. Cuir leis é trína
-nasc:
-
 1. I Home Assistant, oscail **Socruithe → Margadh** (HACS).
-2. Roghnaigh **Cuir leis ón nasc** (nó an roghchlár trí phonc → **Stórtha
-   saincheaptha**).
-3. Iontráil `StrausbergAutomationWorks/LiveTrackCommuterRail`. Má iarrtar an
-   cineál, roghnaigh **Comhtháthú**.
-4. Aimsigh **Live Track Commuter Rail** sa liosta agus roghnaigh **Download**
-   nó **Suiteáil**.
-5. **Atosaigh Home Assistant**: tairgeann **Socruithe → Córas →
+2. Cuardaigh **Live Track Commuter Rail** agus oscail é.
+3. Roghnaigh **Download** (nó **Suiteáil**).
+4. **Atosaigh Home Assistant**: tairgeann **Socruithe → Córas →
    Deisiúcháin** an t-atosú, nó úsáid **Socruithe → Córas → Atosaigh**.
+
+Mura n-aimsíonn an cuardach é, cuir leis é trína nasc: roghnaigh **Cuir leis ón
+nasc** (nó an roghchlár trí phonc → **Stórtha saincheaptha**), iontráil
+`StrausbergAutomationWorks/LiveTrackCommuterRail`, roghnaigh **Comhtháthú** má
+iarrtar an cineál, agus ansin lean ar aghaidh ó chéim 3.
 
 Ina dhiaidh sin tairgeann an Margadh gach eisiúint nua mar nuashonrú.
 
@@ -402,8 +400,13 @@ socraithe, agus gan aon mhodúl Live Track eile suiteáilte, bain féin an ró i
 
 **Chun an cárta a shuiteáil de láimh ina ionad sin**, lean na céimeanna i
 [README an chárta](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard#live-track).
-Ní dhírítear ró a rinne tú féin do chóip faoi `/local/` ar chóip an mhodúil
-seo ach nuair is eisiúint níos nuaí í cóip an mhodúil seo.
+Ní athraítear agus ní bhaintear choíche ró a rinne tú féin do chóip faoi
+`/local/` nó ag seoladh ar bith eile. Fad is a lódálann sé an cárta, fágann gach
+modúl Live Track an cárta faoi, fiú nuair atá eisiúint níos nuaí ag modúl, agus
+ní luann aon rud in **Deisiúcháin** é. Chun filleadh ar chóip an mhodúil, bain
+do ró in **Socruithe → Deais → Acmhainní** agus atosaigh Home Assistant. Má
+scriosann tú comhad do chóipe, bain a ró freisin: fad is a fhanann ró nach
+bhfuil a chomhad ann a thuilleadh, ní chuireann an modúl ró dá chuid féin leis.
 
 Taispeánann aon chárta léarscáile eile a thaispeánann aonáin `geo_location` na
 traenacha freisin, mar ghnáthmharcóirí.

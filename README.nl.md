@@ -19,9 +19,8 @@ open data.
 > landen toe. Ontbreekt de jouwe? [Stel hem voor](#help-het-groeien), of voeg
 > hem zelf toe: we helpen je daarbij.
 
-**Status: 0.1.4, uitgebracht.** Toegevoegd aan de Marktplaats via een
-koppeling ([hieronder](#installeren-stap-voor-stap)); het staat nog niet in de
-catalogus van de Marktplaats.
+**Status: 0.1.6, uitgebracht.** In de catalogus van de Marktplaats ([installeer
+het hieronder](#installeren-stap-voor-stap)).
 
 Origineel werk van StrausbergAutomationWorks. Niet verbonden aan, of
 onderschreven door, Metra, het Northern Indiana Commuter Transportation
@@ -170,18 +169,16 @@ Alles is gratis en open source. Niets wordt achtergehouden voor sponsors.
 
 ### Via de Marktplaats (aanbevolen)
 
-Live Track Commuter Rail staat nog niet in de catalogus van de Marktplaats.
-Voeg het toe via de koppeling:
-
 1. Open in Home Assistant **Instellingen → Marktplaats** (HACS).
-2. Kies **Via koppeling toevoegen** (of het menu met de drie puntjes →
-   **Aangepaste repositories**).
-3. Voer `StrausbergAutomationWorks/LiveTrackCommuterRail` in. Als om het type
-   wordt gevraagd, kies **Integratie**.
-4. Zoek **Live Track Commuter Rail** in de lijst en kies **Download** of
-   **Installeren**.
-5. **Herstart Home Assistant**: **Instellingen → Systeem → Reparaties** biedt
+2. Zoek **Live Track Commuter Rail** en open het.
+3. Kies **Download** (of **Installeren**).
+4. **Herstart Home Assistant**: **Instellingen → Systeem → Reparaties** biedt
    de herstart aan, of gebruik **Instellingen → Systeem → Herstart**.
+
+Vindt de zoekfunctie het niet, voeg het dan toe via de koppeling: kies **Via
+koppeling toevoegen** (of het menu met de drie puntjes → **Aangepaste
+repositories**), voer `StrausbergAutomationWorks/LiveTrackCommuterRail` in, kies
+**Integratie** als om het type wordt gevraagd en ga daarna verder bij stap 3.
 
 Daarna biedt de Marktplaats elke nieuwe release als update aan.
 
@@ -398,9 +395,14 @@ Dashboards → Bronnen**.
 
 **Om de kaart in plaats daarvan met de hand te installeren**, volg je de
 stappen in de [README van de kaart](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard#live-track).
-Een regel die je zelf hebt gemaakt voor een kopie onder `/local/`, wordt
-alleen naar de kopie van deze module omgezet als die kopie een nieuwere
-release is.
+Een regel die je zelf hebt gemaakt, voor een kopie onder `/local/` of op een
+ander adres, wordt nooit gewijzigd of verwijderd. Zolang die de kaart laadt,
+laat elke Live Track-module de kaart eraan over, ook als een module een nieuwere
+release heeft, en niets in **Reparaties** meldt dat. Om terug te gaan naar de
+kopie van de module, verwijder je je regel in **Instellingen → Dashboards →
+Bronnen** en herstart je Home Assistant. Verwijder je het bestand van je kopie,
+verwijder dan ook de regel: zolang een regel waarvan het bestand weg is blijft
+staan, voegt de module geen eigen regel toe.
 
 Elke andere kaart die `geo_location`-entiteiten toont, toont de treinen ook,
 als gewone markers.

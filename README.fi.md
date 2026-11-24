@@ -19,9 +19,8 @@ omista avoimista tiedoista.
 > Puuttuuko omasi? [Ehdota sitä](#auta-sitä-kasvamaan), tai lisää se itse:
 > autamme sinua.
 
-**Tila: 0.1.4, julkaistu.** Lisätään Markkinapaikkaan linkin kautta
-([alempana](#asenna-se-vaihe-vaiheelta)); se ei ole vielä Markkinapaikan
-luettelossa.
+**Tila: 0.1.6, julkaistu.** Markkinapaikan luettelossa ([asenna se
+alempana](#asenna-se-vaihe-vaiheelta)).
 
 StrausbergAutomationWorksin alkuperäinen työ. Ei sidoksissa seuraaviin,
 eivätkä ne ole hyväksyneet sitä: Metra, Northern Indiana Commuter
@@ -170,19 +169,17 @@ Kaikki on ilmaista ja avointa lähdekoodia. Mitään ei pidätetä tukijoille.
 
 ### Markkinapaikasta (suositus)
 
-Live Track Commuter Rail ei ole vielä Markkinapaikan luettelossa. Lisää se
-linkin kautta:
-
 1. Avaa Home Assistantissa **Asetukset → Markkinapaikka** (HACS).
-2. Valitse **Lisää linkistä** (tai kolmen pisteen valikko → **Mukautetut
-   tietovarastot**).
-3. Kirjoita `StrausbergAutomationWorks/LiveTrackCommuterRail`. Jos tyyppiä
-   kysytään, valitse **Integraatio**.
-4. Etsi luettelosta **Live Track Commuter Rail** ja valitse **Lataa** tai
-   **Asenna**.
-5. **Käynnistä Home Assistant uudelleen**: **Asetukset → Järjestelmä →
+2. Hae **Live Track Commuter Rail** ja avaa se.
+3. Valitse **Lataa** (tai **Asenna**).
+4. **Käynnistä Home Assistant uudelleen**: **Asetukset → Järjestelmä →
    Korjaukset** tarjoaa uudelleenkäynnistyksen, tai käytä **Asetukset →
    Järjestelmä → Käynnistä uudelleen**.
+
+Jos haku ei löydä sitä, lisää se linkin kautta: valitse **Lisää linkistä** (tai
+kolmen pisteen valikko → **Mukautetut tietovarastot**), kirjoita
+`StrausbergAutomationWorks/LiveTrackCommuterRail`, valitse **Integraatio**, jos
+tyyppiä kysytään, ja jatka sitten vaiheesta 3.
 
 Sen jälkeen Markkinapaikka tarjoaa jokaisen uuden version päivityksenä.
 
@@ -394,9 +391,14 @@ poista rivi itse kohdassa **Asetukset → Kojelaudat → Resurssit**.
 
 **Jos haluat asentaa kortin käsin**, noudata
 [kortin README-tiedoston](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard#live-track)
-ohjeita. Rivi, jonka olet itse tehnyt kansiossa `/local/` olevalle kopiolle,
-ohjataan tämän moduulin kopioon vain, kun tämän moduulin kopio on uudempi
-julkaisu.
+ohjeita. Itse tekemääsi riviä, joka on kansiossa `/local/` tai missä tahansa
+muussa osoitteessa olevalle kopiolle, ei koskaan muuteta eikä poisteta. Niin
+kauan kuin se lataa kortin, jokainen Live Track -moduuli jättää kortin sille,
+vaikka moduulissa olisi uudempi julkaisu, eikä mikään kohdassa **Korjaukset**
+kerro siitä. Palataksesi moduulin kopioon poista rivisi kohdassa **Asetukset →
+Kojelaudat → Resurssit** ja käynnistä Home Assistant uudelleen. Jos poistat
+kopiosi tiedoston, poista myös sen rivi: niin kauan kuin rivi, jonka tiedosto on
+poissa, on jäljellä, moduuli ei lisää omaa riviään.
 
 Mikä tahansa muu karttakortti, joka näyttää `geo_location`-entiteettejä,
 näyttää myös junat tavallisina merkkeinä.
