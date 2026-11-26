@@ -135,6 +135,7 @@ lukee.
 | [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail) | kaukojunat Pohjois-Amerikassa, Euroopassa ja Australiassa | julkaistu |
 | [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT) | maahanmuutto- ja liittovaltion lainvalvontaviranomaisten lentokoneet ja alukset julkisista luetteloista | julkaistu |
 | [Live Track Weather](https://github.com/StrausbergAutomationWorks/LiveTrackWeather) | sää, myrskyt ja luonnonvaarat | julkaistu |
+| [Live Track Internet](https://github.com/StrausbergAutomationWorks/LiveTrackInternet) | internetkatkot, merikaapelit ja maayhteydet | julkaistu |
 | Live Track Stations | lähtötaulut ja "nyt on lähdettävä" -ilmoitukset jokaiselle asemalle | suunnitteilla |
 | Live Track Satellites | yläpuolelta kulkevat satelliitit | suunnitteilla |
 | Live Track Freight Trains | tavara- ja työjunat siellä, missä rautatiet julkaisevat ne | suunnitteilla |

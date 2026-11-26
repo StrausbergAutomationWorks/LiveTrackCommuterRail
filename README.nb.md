@@ -131,6 +131,7 @@ allerede leser.
 | [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail) | intercity- og fjerntog i Nord-Amerika, Europa og Australia | utgitt |
 | [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT) | fly og fartøy brukt av immigrasjons- og føderale politimyndigheter, fra offentlige lister | utgitt |
 | [Live Track Weather](https://github.com/StrausbergAutomationWorks/LiveTrackWeather) | vær, stormer og naturfarer | utgitt |
+| [Live Track Internet](https://github.com/StrausbergAutomationWorks/LiveTrackInternet) | internettbrudd, sjøkabler og landforbindelser | utgitt |
 | Live Track Stations | avgangstavler og "på tide å gå"-varsler for hver stasjon | planlagt |
 | Live Track Satellites | satellitter som passerer over deg | planlagt |
 | Live Track Freight Trains | godstog og arbeidstog der jernbaner publiserer dem | planlagt |

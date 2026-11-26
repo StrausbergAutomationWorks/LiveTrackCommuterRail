@@ -136,6 +136,7 @@ modúl eile cheana.
 | [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail) | traenacha idirchathrach agus fadachair i Meiriceá Thuaidh, san Eoraip agus san Astráil | eisithe |
 | [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT) | aerárthaí agus soithí inimirce agus forfheidhmithe dlí cónaidhme, ó liostaí poiblí | eisithe |
 | [Live Track Weather](https://github.com/StrausbergAutomationWorks/LiveTrackWeather) | aimsir, stoirmeacha agus guaiseacha nádúrtha | eisithe |
+| [Live Track Internet](https://github.com/StrausbergAutomationWorks/LiveTrackInternet) | cliseadh idirlín, cáblaí fomhuirí agus naisc talún | eisithe |
 | Live Track Stations | cláir imeachta agus foláirimh "am imeacht" do gach stáisiún | beartaithe |
 | Live Track Satellites | satailítí ag dul thar bráid os do chionn | beartaithe |
 | Live Track Freight Trains | traenacha lastais agus oibre nuair a fhoilsíonn iarnróid iad | beartaithe |
