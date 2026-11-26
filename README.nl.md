@@ -19,7 +19,7 @@ open data.
 > landen toe. Ontbreekt de jouwe? [Stel hem voor](#help-het-groeien), of voeg
 > hem zelf toe: we helpen je daarbij.
 
-**Status: 0.1.6, uitgebracht.** In de catalogus van de Marktplaats ([installeer
+**Status: 0.1.7, uitgebracht.** In de catalogus van de Marktplaats ([installeer
 het hieronder](#installeren-stap-voor-stap)).
 
 Origineel werk van StrausbergAutomationWorks. Niet verbonden aan, of

@@ -18,7 +18,7 @@ nästa station. Varje bana läggs till för sig, från bananas egna öppna data.
 > Saknas din? [Föreslå den](#hjälp-den-att-växa), eller lägg till den själv:
 > vi hjälper dig.
 
-**Status: 0.1.6, utgiven.** I Marknadsplatsens katalog ([installera den
+**Status: 0.1.7, utgiven.** I Marknadsplatsens katalog ([installera den
 nedan](#installera-den-steg-för-steg)).
 
 Originalarbete av StrausbergAutomationWorks. Inte knuten till, eller godkänd

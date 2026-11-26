@@ -19,7 +19,7 @@ sus propios datos abiertos.
 > ¿Falta la tuya? [Sugiérela](#ayúdanos-a-hacerlo-crecer), o añádela tú mismo:
 > te ayudaremos a hacerlo.
 
-**Estado: 0.1.6, publicado.** En el catálogo del Marketplace ([instálalo más
+**Estado: 0.1.7, publicado.** En el catálogo del Marketplace ([instálalo más
 abajo](#instalarlo-paso-a-paso)).
 
 Obra original de StrausbergAutomationWorks. Sin relación con Metra, el

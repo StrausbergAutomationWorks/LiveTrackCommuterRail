@@ -17,7 +17,7 @@ Hver bane legges til for seg, fra banens egne åpne data.
 > i 8 land på 3 kontinenter, og vi legger til flere baner og land. Mangler din?
 > [Foreslå den](#hjelp-den-å-vokse), eller legg den til selv: vi hjelper deg.
 
-**Status: 0.1.6, utgitt.** I katalogen til Marketplace ([installer den
+**Status: 0.1.7, utgitt.** I katalogen til Marketplace ([installer den
 nedenfor](#installer-den-trinn-for-trinn)).
 
 Originalt arbeid av StrausbergAutomationWorks. Ikke tilknyttet, eller

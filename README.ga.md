@@ -19,7 +19,7 @@ leith, óna shonraí oscailte féin.
 > iarnród agus tíortha leis. An bhfuil d'iarnród féin in easnamh?
 > [Mol é](#cuidigh-leis-fás), nó cuir leis tú féin é: cabhróimid leat.
 
-**Stádas: 0.1.6, eisithe.** I gcatalóg an Mhargaidh ([suiteáil thíos
+**Stádas: 0.1.7, eisithe.** I gcatalóg an Mhargaidh ([suiteáil thíos
 é](#suiteáil-é-céim-ar-chéim)).
 
 Saothar bunaidh le StrausbergAutomationWorks. Níl baint aige le Metra,

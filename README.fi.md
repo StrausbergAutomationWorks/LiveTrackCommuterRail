@@ -19,7 +19,7 @@ omista avoimista tiedoista.
 > Puuttuuko omasi? [Ehdota sitä](#auta-sitä-kasvamaan), tai lisää se itse:
 > autamme sinua.
 
-**Tila: 0.1.6, julkaistu.** Markkinapaikan luettelossa ([asenna se
+**Tila: 0.1.7, julkaistu.** Markkinapaikan luettelossa ([asenna se
 alempana](#asenna-se-vaihe-vaiheelta)).
 
 StrausbergAutomationWorksin alkuperäinen työ. Ei sidoksissa seuraaviin,
