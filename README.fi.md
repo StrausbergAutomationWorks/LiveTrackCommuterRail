@@ -154,8 +154,6 @@ Kaikki on ilmaista ja avointa lähdekoodia. Mitään ei pidätetä tukijoille.
   käyvät helposti. Ilman sitä voit kopioida tiedostot käsin.
 * **Internetyhteys** Home Assistantille: jokainen juna tulee oman rautatiensä
   avoimesta syötteestä.
-* **Valinnainen: auto-entities** Markkinapaikasta, jotta merkit saadaan
-  kartalle (katso [Lisää kartta kojelaudalle](#lisää-kartta-kojelaudalle)).
 * Ei mitään maksettavaa. 26 rautatietä 31:stä ei tarvitse
   tiliä; muut viisi tarvitsevat oman, ilmaisen avaimen
   ([yllä](#oma-ilmainen-avain-tai-tili-tuo-lisää)).
@@ -309,32 +307,6 @@ resurssia lisättäväksi.
    **Lisää kortti**.
 2. Vieritä alas ja valitse **Manuaalinen**.
 3. Liitä tämä ja valitse **Tallenna**:
-
-```yaml
-type: custom:auto-entities
-card:
-  type: custom:live-track-map-card
-filter:
-  include:
-    - domain: geo_location
-      attributes:
-        source: live_track_commuter_rail
-      options:
-        display: attribute
-        attribute: marker_label
-        position_transition: auto
-  exclude:
-    - state: unavailable
-```
-
-Tämä tapa tarvitsee Markkinapaikasta [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
--kortin. Jos sinulla on muita Live Track -moduuleja, lisää yksi
-`- domain: geo_location` -suodatin kullekin niiden lähteelle
-(`live_track_intercity_rail`, `live_track_aircraft` ja niin edelleen).
-
-**Ilman auto-entities-korttia:** LiveTrackMapCard voi valita itse, mitä se
-näyttää, `entity_filter`-asetuksella. Liitä tämä sen sijaan; muuta ei tarvitse
-asentaa:
 
 ```yaml
 type: custom:live-track-map-card

@@ -154,8 +154,6 @@ Alles is gratis en open source. Niets wordt achtergehouden voor sponsors.
   hand kopiëren.
 * **Internettoegang** voor Home Assistant: elke trein komt uit de openbare
   feed van zijn eigen spoorweg.
-* **Optioneel: auto-entities** uit de Marktplaats, om de markers op de kaart
-  te zetten (zie [De kaart op een dashboard zetten](#de-kaart-op-een-dashboard-zetten)).
 * Niets te betalen. 26 van de 31 spoorwegen hebben geen
   account nodig; de andere vijf hebben een eigen, gratis sleutel nodig
   ([hierboven](#aangezet-met-je-eigen-gratis-sleutel-of-account)).
@@ -312,32 +310,6 @@ bron toe te voegen.
    kaart toe**.
 2. Scrol naar beneden en kies **Handmatig**.
 3. Plak dit en kies **Bewaar**:
-
-```yaml
-type: custom:auto-entities
-card:
-  type: custom:live-track-map-card
-filter:
-  include:
-    - domain: geo_location
-      attributes:
-        source: live_track_commuter_rail
-      options:
-        display: attribute
-        attribute: marker_label
-        position_transition: auto
-  exclude:
-    - state: unavailable
-```
-
-Deze vorm heeft [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
-uit de Marktplaats nodig. Heb je andere Live Track-modules geïnstalleerd, voeg
-dan voor elk van hun bronnen nog een `- domain: geo_location`-filter toe
-(`live_track_intercity_rail`, `live_track_aircraft` enzovoort).
-
-**Zonder auto-entities:** LiveTrackMapCard kan met `entity_filter` zelf kiezen
-wat hij toont. Plak in plaats daarvan dit; er hoeft niets meer geïnstalleerd
-te worden:
 
 ```yaml
 type: custom:live-track-map-card

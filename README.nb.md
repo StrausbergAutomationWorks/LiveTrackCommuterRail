@@ -150,8 +150,6 @@ Alt er gratis og åpen kildekode. Ingenting holdes tilbake for sponsorer.
   på den enkle måten. Uten den kan du kopiere filene for hånd.
 * **Internettilgang** for Home Assistant: hvert tog kommer fra banens egen
   åpne strøm.
-* **Valgfritt: auto-entities** fra Marketplace, for å få markørene på kartet
-  (se [Sett kartet på et dashbord](#sett-kartet-på-et-dashbord)).
 * Ingenting å betale. 26 av de 31 banene trenger ingen
   konto; de andre fem trenger en egen, gratis nøkkel
   ([ovenfor](#slått-på-med-din-egen-gratis-nøkkel-eller-konto)).
@@ -307,31 +305,6 @@ legge til.
    kort**.
 2. Bla helt ned og velg **Manuell**.
 3. Lim inn dette og velg **Lagre**:
-
-```yaml
-type: custom:auto-entities
-card:
-  type: custom:live-track-map-card
-filter:
-  include:
-    - domain: geo_location
-      attributes:
-        source: live_track_commuter_rail
-      options:
-        display: attribute
-        attribute: marker_label
-        position_transition: auto
-  exclude:
-    - state: unavailable
-```
-
-Denne formen trenger [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
-fra Marketplace. Har du andre Live Track-moduler installert, legger du til ett
-`- domain: geo_location`-filter til for hver av kildene deres
-(`live_track_intercity_rail`, `live_track_aircraft` og så videre).
-
-**Uten auto-entities:** LiveTrackMapCard kan selv velge hva det viser, med
-`entity_filter`. Lim inn dette i stedet; ingenting mer må installeres:
 
 ```yaml
 type: custom:live-track-map-card

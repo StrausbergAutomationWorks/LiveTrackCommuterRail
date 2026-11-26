@@ -150,8 +150,6 @@ Everything is free and open source. Nothing is held back for sponsors.
   the easy way. Without it you can copy the files by hand.
 * **Internet access** for Home Assistant: every train comes from the
   railroad's own public feed.
-* **Optional: auto-entities** from the Marketplace, to put the markers on the
-  map (see [Put the map on a dashboard](#put-the-map-on-a-dashboard)).
 * Nothing to pay. 26 of the 31 railroads need no
   account; the other five need a free key of your own ([above](#switched-on-by-your-own-free-key-or-account)).
 * Home Assistant installs the Python packages it needs (`saw-livetrack`,
@@ -297,31 +295,6 @@ Commuter Rail**: nothing to download, nothing to copy, no resource to add.
 1. Open a dashboard, choose the pencil (**Edit dashboard**), then **Add card**.
 2. Scroll to the bottom and choose **Manual**.
 3. Paste this, and choose **Save**:
-
-```yaml
-type: custom:auto-entities
-card:
-  type: custom:live-track-map-card
-filter:
-  include:
-    - domain: geo_location
-      attributes:
-        source: live_track_commuter_rail
-      options:
-        display: attribute
-        attribute: marker_label
-        position_transition: auto
-  exclude:
-    - state: unavailable
-```
-
-This form needs [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
-from the Marketplace. With other Live Track modules installed, add one more
-`- domain: geo_location` filter for each of their sources
-(`live_track_intercity_rail`, `live_track_aircraft` and so on).
-
-**Without auto-entities:** LiveTrackMapCard can choose what it shows by
-itself, with `entity_filter`. Paste this instead; nothing more to install:
 
 ```yaml
 type: custom:live-track-map-card

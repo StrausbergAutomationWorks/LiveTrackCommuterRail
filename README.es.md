@@ -153,8 +153,6 @@ Todo es gratuito y de código abierto. Nada se reserva para patrocinadores.
   actualizarlo de la forma fácil. Sin él puedes copiar los archivos a mano.
 * **Acceso a internet** para Home Assistant: cada tren viene del canal público
   de su propia red.
-* **Opcional: auto-entities** del Marketplace, para poner los marcadores en el
-  mapa (ver [Poner el mapa en un panel de control](#poner-el-mapa-en-un-panel-de-control)).
 * Nada que pagar. 26 de las 31 redes no necesitan
   cuenta; las otras cinco necesitan una clave propia gratuita
   ([más arriba](#activado-con-tu-propia-clave-o-cuenta-gratuita)).
@@ -309,31 +307,6 @@ recurso que añadir.
    luego **Añadir tarjeta**.
 2. Desplázate hasta abajo y elige **Manual**.
 3. Pega esto y elige **Guardar**:
-
-```yaml
-type: custom:auto-entities
-card:
-  type: custom:live-track-map-card
-filter:
-  include:
-    - domain: geo_location
-      attributes:
-        source: live_track_commuter_rail
-      options:
-        display: attribute
-        attribute: marker_label
-        position_transition: auto
-  exclude:
-    - state: unavailable
-```
-
-Esta forma necesita [auto-entities](https://github.com/thomasloven/lovelace-auto-entities)
-del Marketplace. Si tienes otros módulos de Live Track, añade un filtro
-`- domain: geo_location` más por cada una de sus fuentes
-(`live_track_intercity_rail`, `live_track_aircraft`, etc.).
-
-**Sin auto-entities:** LiveTrackMapCard puede elegir por sí misma qué muestra,
-con `entity_filter`. Pega esto en su lugar; no hace falta instalar nada más:
 
 ```yaml
 type: custom:live-track-map-card
