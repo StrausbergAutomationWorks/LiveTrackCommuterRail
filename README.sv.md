@@ -133,7 +133,7 @@ redan läser.
 | [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail) | intercity- och fjärrtåg i Nordamerika, Europa och Australien | utgiven |
 | [Live Track SALT](https://github.com/StrausbergAutomationWorks/LiveTrackSALT) | flygplan och fartyg som används av immigrations- och federala polismyndigheter, från offentliga listor | utgiven |
 | [Live Track Weather](https://github.com/StrausbergAutomationWorks/LiveTrackWeather) | väder, stormar och naturrisker | utgiven |
-| [Live Track Internet](https://github.com/StrausbergAutomationWorks/LiveTrackInternet) | internetavbrott, sjökablar och landförbindelser | utgiven |
+| [Live Track Internet](https://github.com/StrausbergAutomationWorks/LiveTrackInternet) | internetavbrott, sjökablar och landbaserade fiberförbindelser | utgiven |
 | Live Track Stations | avgångstavlor och "dags att gå"-aviseringar för varje station | planerad |
 | Live Track Satellites | satelliter som passerar ovanför | planerad |
 | Live Track Freight Trains | godståg och arbetståg där järnvägar publicerar dem | planerad |
